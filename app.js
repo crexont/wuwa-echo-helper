@@ -137,11 +137,12 @@ function initUI() {
     card.className = 'goal-card';
     card.id = `goal-card-${goal.id}`;
     card.innerHTML = `
-      <div class="goal-title">${goal.title}</div>
-      <div class="goal-info">
-        <div class="goal-prob" id="prob-${goal.id}">대기 중...</div>
-        <div class="decision-badge badge-wait" id="badge-${goal.id}">-</div>
-      </div>`;
+      <div class="goal-head">
+        <div class="goal-title">${goal.title}</div>
+        <div class="decision-badge badge-wait" id="badge-${goal.id}">대기</div>
+      </div>
+      <div class="goal-prob" id="prob-${goal.id}">대기 중</div>
+      <div class="goal-bar"><span id="bar-${goal.id}"></span><i class="goal-th"></i></div>`;
     dashboardList.appendChild(card);
   });
 
@@ -168,12 +169,16 @@ function buildBase(goal, validKeys) {
   return [0, 0, Math.min(validKeys.length, cap)];
 }
 
-function setGoalResult(id, html, status) {
+// prob: 0~1 (막대 길이). 숫자가 없는 상태(대기/달성)는 null
+function setGoalResult(id, html, status, prob = null) {
   $(`prob-${id}`).innerHTML = html;
   const badge = $(`badge-${id}`);
   badge.className = `decision-badge badge-${status.toLowerCase()}`;
-  badge.innerText = { WAIT: '대기 중', DONE: '성공 (완주)', GO: 'GO (강화 추천)', STOP: 'STOP (즉시 손절)' }[status];
-  $(`goal-card-${id}`).classList.toggle('active', status === 'GO' || status === 'DONE');
+  badge.innerText = { WAIT: '대기', DONE: '성공', GO: 'GO', STOP: 'STOP' }[status];
+  const card = $(`goal-card-${id}`);
+  card.className = `goal-card is-${status.toLowerCase()}`;
+  const width = status === 'DONE' ? 1 : prob ?? 0;
+  $(`bar-${id}`).style.width = `${(clamp(width) * 100).toFixed(1)}%`;
 }
 
 function renderStatList(slots, isValid, keyCount, openedCount) {
@@ -188,20 +193,20 @@ function renderStatList(slots, isValid, keyCount, openedCount) {
     if (!stat) {
       row.classList.add('stat-item-missing');
       row.innerHTML = `
-        <div><span>슬롯 ${idx + 1}</span><span class="stat-warn">⚠ 인식 실패</span></div>
-        <span class="stat-edit-hint">✏️ 직접 입력</span>`;
+        <div><span>슬롯 ${idx + 1}</span><span class="stat-warn">인식 실패</span></div>
+        <span class="stat-edit-hint">직접 입력</span>`;
     } else {
       const valid = isValid(stat);
       row.innerHTML = `
         <div>
           <span>${pinned[idx] ? '📌 ' : ''}${stat.name}</span>
-          <span style="color:#94a3b8; font-size:12px; margin-left:6px;">+${stat.val}${stat.isPercent ? '%' : ''}</span>
-          ${valid ? '<span class="valid-mark">★ 유효</span>' : ''}
+          <span class="stat-val">+${stat.val}${stat.isPercent ? '%' : ''}</span>
+          ${valid ? '<span class="valid-mark">유효</span>' : ''}
           ${keyCount[stat.key] > 1 ? '<span class="stat-warn">⚠ 중복</span>' : ''}
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span class="tier-badge ${stat.tier.class}">${stat.tier.label}</span>
-          <span class="stat-edit-hint">✏️ 수정</span>
+          <span class="stat-edit-hint">수정</span>
         </div>`;
     }
     row.addEventListener('click', () => openEditModal(idx));
@@ -210,7 +215,7 @@ function renderStatList(slots, isValid, keyCount, openedCount) {
   if (openedCount < SLOT_COUNT) {
     const add = document.createElement('div');
     add.className = 'stat-item stat-item-add';
-    add.textContent = `＋ 슬롯 ${openedCount + 1} 직접 추가`;
+    add.textContent = `+ 슬롯 ${openedCount + 1} 직접 추가`;
     add.addEventListener('click', () => openEditModal(openedCount));
     statList.appendChild(add);
   }
@@ -220,6 +225,7 @@ function runEvaluation() {
   const selectedTargets = getSelectedTargets();
   const cutScore = CUT_SCORE[minTierCutSelect.value];
   const goThreshold = getGoThreshold() / 100;
+  dashboardList.style.setProperty('--go-th', `${getGoThreshold()}%`);   // 막대 위 GO 기준선
 
   // 슬롯 위치를 유지한 채로 "열린 칸 수"를 센다 (중간 슬롯 인식 실패가 개수를 줄이지 않도록)
   let lastIdx = -1;
@@ -264,10 +270,10 @@ function runEvaluation() {
       return;
     }
     const base = buildBase(goal, validKeys);
-    if (isGoalSatisfied(base, goal)) { setGoalResult(goal.id, '목표 스펙 달성 완료!', 'DONE'); return; }
+    if (isGoalSatisfied(base, goal)) { setGoalResult(goal.id, '<span class="prob-num">달성</span><span class="prob-label">목표 스펙 완성</span>', 'DONE'); return; }
     const prob = goalSuccessProb(goal, pool, picks, base);
-    if (prob === 0) { setGoalResult(goal.id, '수학적 달성 불가', 'STOP'); return; }
-    setGoalResult(goal.id, `최종 완성 확률: <strong>${(prob * 100).toFixed(2)}%</strong>`, prob >= goThreshold ? 'GO' : 'STOP');
+    if (prob === 0) { setGoalResult(goal.id, '<span class="prob-num">0%</span><span class="prob-label">수학적 달성 불가</span>', 'STOP', 0); return; }
+    setGoalResult(goal.id, `<span class="prob-num">${(prob * 100).toFixed(2)}%</span><span class="prob-label">최종 완성 확률</span>`, prob >= goThreshold ? 'GO' : 'STOP', prob);
   });
 }
 
@@ -393,12 +399,18 @@ function sigDiff(a, b) {
   return sum / a.length;
 }
 
+// 상태 표시 (kind: idle | busy | ok | info | err → CSS 점 색)
+function setStatus(kind, text) {
+  ocrStatus.className = `status-text st-${kind}`;
+  ocrStatus.innerHTML = `<i class="st-dot"></i><span>${text}</span>`;
+  document.body.classList.toggle('is-live', kind === 'ok' || kind === 'busy' || kind === 'info');
+}
+
 function updateScanStatus() {
   if (!currentStream || !ocrReady) return;
   const n = lockedSlots.filter(Boolean).length;
-  ocrStatus.innerHTML = n > 0
-    ? `<span style="color:#4ade80;">🔒 ${n}개 부옵션 확정</span>`
-    : '<span style="color:#fde047;">⏳ 에코 데이터 스캔 중...</span>';
+  if (n > 0) setStatus('ok', `${n}개 부옵션 확정`);
+  else setStatus('busy', '에코 데이터 스캔 중');
 }
 
 async function runOcrCycle(now) {
@@ -447,7 +459,7 @@ startShareBtn.addEventListener('click', async () => {
   } catch (err) {
     currentStream = null;
     if (err.name !== 'NotAllowedError') {
-      ocrStatus.innerHTML = `<span style="color:#f87171;">⚠️ 화면 공유 실패: ${err.message}</span>`;
+      setStatus('err', `화면 공유 실패: ${err.message}`);
     }
     return;
   }
@@ -455,10 +467,10 @@ startShareBtn.addEventListener('click', async () => {
   gameVideo.srcObject = currentStream;
   gameVideo.muted = true;
   gameVideo.play().catch(() => {});
-  startShareBtn.innerHTML = '⏹ 공유 중지';
+  startShareBtn.textContent = '공유 중지';
   startShareBtn.classList.add('btn-stop');
   framePlaceholder.style.display = 'none';
-  ocrStatus.innerHTML = '<span style="color:#fde047;">⏳ OCR 엔진 로드 중...</span>';
+  setStatus('busy', 'OCR 엔진 로드 중');
 
   const token = ++loopToken;                              // 미리보기는 OCR 로딩과 상관없이 바로 시작
   requestAnimationFrame((ts) => renderLoop(ts, token));
@@ -468,12 +480,12 @@ startShareBtn.addEventListener('click', async () => {
     await initOcr();
   } catch (err) {
     console.error(err);
-    if (currentStream) ocrStatus.innerHTML = '<span style="color:#f87171;">⚠️ OCR 엔진 로드 실패 (네트워크 확인)</span>';
+    if (currentStream) setStatus('err', 'OCR 엔진 로드 실패 (네트워크 확인)');
     return;
   }
   if (!currentStream) return;                             // 로딩 중 공유가 중지된 경우
   ocrReady = true;
-  ocrStatus.innerHTML = '<span style="color:#4ade80;">🟢 실시간 감시 중</span>';
+  setStatus('ok', '실시간 감시 중');
 });
 
 function stopScreenShare() {
@@ -486,7 +498,7 @@ function stopScreenShare() {
   framePlaceholder.style.display = 'block';
   frameCtx.clearRect(0, 0, frameCanvas.width, frameCanvas.height);
   resetCurrentEcho();
-  ocrStatus.innerHTML = '<span>⚙️</span> 화면 공유 중지됨';
+  setStatus('idle', '화면 공유 중지됨');
 }
 
 function resetCurrentEcho() {
@@ -494,7 +506,7 @@ function resetCurrentEcho() {
   pinned = Array(SLOT_COUNT).fill(false);
   invalidateOcrCache();
   runEvaluation();
-  if (currentStream) ocrStatus.innerHTML = '<span style="color:#38bdf8;">🔄 새 에코 인식 대기중</span>';
+  if (currentStream) setStatus('info', '새 에코 인식 대기 중');
 }
 
 function invalidateOcrCache() {
@@ -547,15 +559,15 @@ function drawFrame(timestamp) {
   frameCtx.lineWidth = 1.5;
   for (let s = 0; s < SLOT_COUNT; s++) {
     const ok = lockedSlots[s] !== null;
-    frameCtx.strokeStyle = ok ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)';
+    frameCtx.strokeStyle = ok ? 'rgba(62, 230, 214, 0.9)' : 'rgba(255, 181, 71, 0.9)';
     frameCtx.strokeRect(bx + 1, by + s * fSlotH + 1, fSplit - 2, fSlotH - 2);
-    frameCtx.strokeStyle = ok ? 'rgba(34, 197, 94, 0.9)' : 'rgba(234, 179, 8, 0.9)';
+    frameCtx.strokeStyle = ok ? 'rgba(62, 230, 214, 0.9)' : 'rgba(255, 181, 71, 0.55)';
     frameCtx.strokeRect(bx + fSplit + 1, by + s * fSlotH + 1, bw - fSplit - 2, fSlotH - 2);
   }
   frameCtx.lineWidth = 2.5;
-  frameCtx.strokeStyle = '#38bdf8';
+  frameCtx.strokeStyle = '#e7e8ea';
   frameCtx.strokeRect(bx, by, bw, bh);
-  frameCtx.fillStyle = '#38bdf8';
+  frameCtx.fillStyle = '#3ee6d6';
   frameCtx.fillRect(bx + bw - 9, by + bh - 9, 18, 18);       // 크기 조절 핸들
 }
 
@@ -643,7 +655,7 @@ function boxFitsView() {
   return inside && box.w / view.w > 0.3 && box.h / view.h > 0.3;
 }
 function updateViewToggleLabel() {
-  viewToggleBtn.textContent = viewMode === 'full' ? '🎯 옵션 영역 확대' : '🔭 전체 화면 보기';
+  viewToggleBtn.textContent = viewMode === 'full' ? '옵션 영역 확대' : '전체 화면 보기';
 }
 
 viewToggleBtn.addEventListener('click', () => {
@@ -664,11 +676,11 @@ resetRegionBtn.addEventListener('click', () => {
 // 캡처 화면(OCR이 보는 그대로) ↔ 영역 조정 화면 전환
 function applyModeUI() {
   frameWrapper.classList.toggle('capture-mode', !adjusting);
-  adjustToggleBtn.textContent = adjusting ? '✅ 조정 완료' : '📐 영역 조정';
+  adjustToggleBtn.textContent = adjusting ? '조정 완료' : '영역 조정';
   viewToggleBtn.style.display = adjusting ? '' : 'none';
   regionHint.textContent = adjusting
-    ? '🖱 드래그: 영역 이동 · 모서리 ■: 크기 조절 · 바깥 드래그: 새로 지정 (자동 저장)'
-    : '📷 OCR이 읽는 화면이에요. 위치가 안 맞으면 [영역 조정]을 눌러주세요.';
+    ? '박스 안을 끌면 이동, 모서리 ■로 크기 조절, 바깥을 끌면 새로 지정 (자동 저장)'
+    : 'OCR이 읽는 화면이에요. 위치가 안 맞으면 [영역 조정]을 눌러주세요.';
   updateViewToggleLabel();
 }
 function setAdjusting(on) {
@@ -706,7 +718,7 @@ function openEditModal(slotIdx) {
   editingIndex = slotIdx;
   const target = lockedSlots[slotIdx];
   const key = target ? target.key : Object.keys(STAT_DATABASE)[0];
-  editModalTitle.textContent = `✏️ 슬롯 ${slotIdx + 1} 부옵션 수정`;
+  editModalTitle.textContent = `슬롯 ${slotIdx + 1} 부옵션 수정`;
   editStatKey.value = key;
   populateValueDropdown(key, target ? target.val : null);
   editModal.style.display = 'flex';
