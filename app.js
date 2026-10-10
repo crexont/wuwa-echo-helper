@@ -196,7 +196,7 @@ function matchExactStep(val, values) {
   return { step: closestIdx + 1, totalSteps: values.length, exactVal: values[closestIdx] };
 }
 
-// OCR 인식 로직 (콘솔 디버그 로그 추가 버전)
+// OCR 인식 로직 (콘솔 로그 포함)
 async function processSlots(cleanCanvas) {
   if (!ocrWorker) return;
   isOcrBusy = true;
@@ -219,8 +219,8 @@ async function processSlots(cleanCanvas) {
 
       const [leftRet, rightRet] = await Promise.all([ ocrWorker.recognize(leftProcessed), ocrWorker.recognize(rightProcessed) ]);
 
-      // 💡 OCR이 실제로 무엇을 읽어내고 있는지 콘솔창에 출력합니다! (F12 눌러서 확인 가능)
-      console.log(`[슬롯 ${s+1}] 읽은 텍스트(옵션명):`, leftRet.data.text, "/ 읽은 수치:", rightRet.data.text);
+      // 💡 OCR이 실제 읽어낸 텍스트를 콘솔창에 찍어줍니다 (F12)
+      console.log(`[슬롯 ${s+1}] 옵션명 원본:`, JSON.stringify(leftRet.data.text), "/ 수치 원본:", JSON.stringify(rightRet.data.text));
 
       const nameStr = leftRet.data.text.replace(/[^가-힣a-zA-Z]/g, ''); 
       const valStr = rightRet.data.text.replace(/\s+/g, '').replace(/,/g, '.');
@@ -251,7 +251,15 @@ async function processSlots(cleanCanvas) {
       currentRawResults.push(matched);
     }
 
-    lockedSlots = [...currentRawResults];
+    const validResults = currentRawResults.filter(r => r !== null);
+    lockedSlots = [
+      validResults[0] || null,
+      validResults[1] || null,
+      validResults[2] || null,
+      validResults[3] || null,
+      validResults[4] || null
+    ];
+    
     runEvaluation();
 
     const validCount = lockedSlots.filter(Boolean).length;
@@ -279,7 +287,10 @@ startShareBtn.addEventListener('click', async () => {
     gameVideo.srcObject = currentStream;
     startShareBtn.innerHTML = '⏹ 공유 중지'; startShareBtn.classList.add('btn-stop'); canvasPlaceholder.style.display = 'none';
     ocrStatus.innerHTML = '<span style="color:#fde047;">⏳ OCR 엔진 로드 중...</span>';
-    if (!ocrWorker) { ocrWorker = await Tesseract.createWorker('kor+eng'); await ocrWorker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE }); }
+    if (!ocrWorker) { 
+      ocrWorker = await Tesseract.createWorker('kor+eng'); 
+      await ocrWorker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_WORD }); 
+    }
     ocrStatus.innerHTML = '<span style="color:#4ade80;">🟢 실시간 감시 중</span>';
     requestAnimationFrame(renderLoop);
   } catch (err) { stopScreenShare(); }
