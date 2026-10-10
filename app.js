@@ -147,7 +147,7 @@ function runEvaluation() {
   });
 }
 
-// OCR 전처리 로직
+// 💡 수정됨: OCR 전처리 로직 (명암비 극대화 및 노이즈 제거)
 function preprocessForOCR(sourceCanvas) {
   const scale = 2.5; 
   const pad = 12;
@@ -163,14 +163,21 @@ function preprocessForOCR(sourceCanvas) {
   pCtx.fillRect(0, 0, targetW, targetH);
   pCtx.imageSmoothingEnabled = true;
   pCtx.imageSmoothingQuality = 'high';
+  
+  // 회색 텍스트와 노이즈를 날려버리기 위한 대비 증가 필터
+  pCtx.filter = 'contrast(250%) grayscale(100%)'; 
   pCtx.drawImage(sourceCanvas, pad, pad, sourceCanvas.width * scale, sourceCanvas.height * scale);
+  pCtx.filter = 'none';
 
   const imgData = pCtx.getImageData(0, 0, targetW, targetH);
   const d = imgData.data;
 
+  // 글자만 선명하게 남기는 임계값
+  const THRESHOLD = 140; 
+
   for (let i = 0; i < d.length; i += 4) {
     const luma = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-    const color = luma > 140 ? 0 : 255;
+    const color = luma > THRESHOLD ? 0 : 255;
     d[i] = color; 
     d[i+1] = color; 
     d[i+2] = color;
@@ -198,7 +205,8 @@ async function processSlots(cleanCanvas) {
   if (!ocrWorker) return;
   isOcrBusy = true;
   const slotH = cleanCanvas.height / 5;
-  const splitX = cleanCanvas.width * 0.80;
+  // 💡 수정됨: 비율 65:35 적용
+  const splitX = cleanCanvas.width * 0.65;
   const currentRawResults = [];
 
   try {
@@ -215,6 +223,12 @@ async function processSlots(cleanCanvas) {
 
       const leftProcessed = preprocessForOCR(rawLeft);
       const rightProcessed = preprocessForOCR(rawRight);
+
+      // 💡 추가됨: Tesseract가 읽는 이미지 확인용 디버그 캔버스 출력
+      leftProcessed.style.border = "1px solid red";
+      rightProcessed.style.border = "1px solid blue";
+      document.body.appendChild(leftProcessed);
+      document.body.appendChild(rightProcessed);
 
       const [leftRet, rightRet] = await Promise.all([ ocrWorker.recognize(leftProcessed), ocrWorker.recognize(rightProcessed) ]);
 
@@ -327,7 +341,8 @@ function renderLoop(timestamp) {
     processSlots(cleanCanvas);
   }
   
-  const splitX = zoomCanvas.width * 0.80, slotH = zoomCanvas.height / 5;
+  // 💡 수정됨: 비율 65:35 적용
+  const splitX = zoomCanvas.width * 0.65, slotH = zoomCanvas.height / 5;
   ctx.lineWidth = 2;
   for (let s = 0; s < 5; s++) {
     ctx.strokeStyle = lockedSlots[s] !== null ? 'rgba(34, 197, 94, 0.85)' : 'rgba(239, 68, 68, 0.85)';
