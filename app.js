@@ -1,7 +1,7 @@
 // app.js — 명조 에코파고 v2.0
 import {
   STAT_DATABASE, DEFAULT_TARGETS, GOAL_PRESETS, CUT_SCORE,
-  evaluateStepTier, tierPassProb, nearestStep, makeSlot, matchStat,
+  evaluateStepTier, tierPassProb, nearestStep, makeSlot, matchStat, isLockedRow,
 } from './data.js';
 import { goalSuccessProb, isGoalSatisfied } from './math.js';
 
@@ -9,7 +9,8 @@ import { goalSuccessProb, isGoalSatisfied } from './math.js';
 const SLOT_COUNT = 5;
 const SPLIT_X = 0.65;          // 슬롯 폭 중 옵션명 / 수치 경계
 const OCR_INTERVAL_MS = 80;
-const ROW_CHANGE = 2.0;        // 줄 지문 차이가 이 값 이상이면 "화면이 바뀐 줄"
+const PIXEL_CHANGE = 40;       // 지문 픽셀 밝기가 이만큼 이상 바뀌어야 "바뀐 픽셀"
+const ROW_CHANGE = 0.06;       // 줄의 6% 이상 픽셀이 바뀌어야 "화면이 바뀐 줄" (배경 파티클 정도는 무시)
 const SETTLE_MAX_MS = 600;     // 줄이 계속 움직여도(반짝임 등) 이 시간이 지나면 그냥 읽는다
 const TARGET_SLOT_PX = 90;     // 전처리 후 슬롯 높이 목표(px)
 const MIN_BOX = 0.04;
@@ -32,6 +33,7 @@ let lastRenderSig = '';
 let readSig = Array(SLOT_COUNT).fill(null);     // 줄별: 마지막으로 OCR한 순간의 화면 지문
 let prevSig = Array(SLOT_COUNT).fill(null);     // 줄별: 직전 사이클의 화면 지문 (애니메이션이 멈췄는지 판단)
 let changedAt = Array(SLOT_COUNT).fill(0);      // 줄별: 변화가 처음 감지된 시각
+let pending = Array(SLOT_COUNT).fill(null);     // 줄별: 확정값과 다른 결과가 한 번 나왔을 때 그 결과 (한 번 더 나오면 교체)
 let box = { ...DEFAULT_BOX };
 let viewMode = 'zoom';                                           // 'zoom' = 옵션 주변만 확대 / 'full' = 전체 화면
 let adjusting = false;                                           // true = 영역 조정 중(드래그 가능) / false = 캡처 화면(OCR이 보는 그대로)
@@ -78,6 +80,8 @@ const SIG_ROWS = 8;                // 줄당 지문 높이(px)
 const sigCanvas = document.createElement('canvas');
 sigCanvas.width = 48; sigCanvas.height = SIG_ROWS * SLOT_COUNT;
 const sigCtx = sigCanvas.getContext('2d', { willReadFrequently: true });
+sigCtx.imageSmoothingEnabled = true;
+sigCtx.imageSmoothingQuality = 'high';   // 축소하면서 작은 파티클은 평균에 묻히게
 
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
 
@@ -137,12 +141,12 @@ function initUI() {
     card.className = 'goal-card';
     card.id = `goal-card-${goal.id}`;
     card.innerHTML = `
-      <div class="goal-head">
-        <div class="goal-title">${goal.title}</div>
-        <div class="decision-badge badge-wait" id="badge-${goal.id}">대기</div>
+      <div class="goal-title">${goal.title}</div>
+      <div class="goal-main">
+        <div class="goal-prob" id="prob-${goal.id}">대기 중</div>
+        <div class="goal-bar"><span id="bar-${goal.id}"></span><i class="goal-th"></i></div>
       </div>
-      <div class="goal-prob" id="prob-${goal.id}">대기 중</div>
-      <div class="goal-bar"><span id="bar-${goal.id}"></span><i class="goal-th"></i></div>`;
+      <div class="decision-badge badge-wait" id="badge-${goal.id}">대기</div>`;
     dashboardList.appendChild(card);
   });
 
@@ -362,9 +366,11 @@ function parseSlot(nameText, valText, slotNo) {
   const valStr = valText.replace(/\s+/g, '').replace(/,/g, '.');
   const m = valStr.match(/(\d+)(?:\.(\d))?/);             // 소수 첫째 자리까지만 사용 ('%'가 '96'처럼 붙어 읽히는 경우 대비)
   if (DEBUG) console.log(`[슬롯 ${slotNo}] 옵션명: "${nameText.trim()}" → ${nameStr} / 수치: "${valText.trim()}"`);
-  if (!m || nameStr.length < 1) return null;
+  if (isLockedRow(nameStr)) return { kind: 'empty' };      // 아직 안 열린 줄 (확실히 비어 있음)
+  if (!m || nameStr.length < 1) return { kind: 'garbage' };
   const val = parseFloat(`${m[1]}.${m[2] ?? 0}`);
-  return matchStat(nameStr, val, valStr.includes('%'));
+  const slot = matchStat(nameStr, val, valStr.includes('%'));
+  return slot ? { kind: 'stat', slot } : { kind: 'garbage' };
 }
 
 async function readSlot(src, s) {
@@ -393,10 +399,34 @@ function slotSignatures(src) {
     return out;
   });
 }
+// 크게 바뀐 픽셀의 비율 (글자가 바뀌면 크고, 배경 파티클이 반짝이는 정도면 작다)
 function sigDiff(a, b) {
-  let sum = 0;
-  for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
-  return sum / a.length;
+  let changed = 0;
+  for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) >= PIXEL_CHANGE) changed++;
+  return changed / a.length;
+}
+
+// 한 줄의 OCR 결과를 반영 (오인식 보정)
+//  - 빈 줄이었으면: 옵션이 읽히면 바로 확정 (새 옵션은 즉시 반영)
+//  - 이미 확정된 줄이면: 쓰레기 결과는 무시하고, 다른 결과는 두 번 연속 같아야 교체
+const resultSig = (r) => (r.kind === 'stat' ? `${r.slot.key}|${r.slot.val}` : r.kind);
+function applyRead(i, r) {
+  const cur = lockedSlots[i];
+  if (r.kind === 'garbage') {
+    if (!cur) readSig[i] = null;                         // 빈 줄은 다음 사이클에 다시 시도
+    return;
+  }
+  const next = r.kind === 'stat' ? r.slot : null;
+  const curSig = cur ? `${cur.key}|${cur.val}` : 'empty';
+  const sig = resultSig(r);
+  if (sig === curSig) { pending[i] = null; return; }
+  if (!cur || pending[i] === sig) {                      // 빈 줄이거나, 같은 새 결과가 두 번째
+    lockedSlots[i] = next;
+    pending[i] = null;
+    return;
+  }
+  pending[i] = sig;                                      // 처음 본 다른 결과 → 바로 한 번 더 읽어서 확인
+  readSig[i] = null;
 }
 
 // 상태 표시 (kind: idle | busy | ok | info | err → CSS 점 색)
@@ -436,11 +466,11 @@ async function runOcrCycle(now) {
     // 비어 있는 줄(= 방금 열린 옵션)을 먼저 읽는다
     toRead.sort((a, b) => Boolean(lockedSlots[a]) - Boolean(lockedSlots[b]) || a - b);
     for (const i of toRead) {
-      const slot = await readSlot(ocrSnap, i);
+      const result = await readSlot(ocrSnap, i);
       if (pinned[i] || !currentStream) continue;          // 읽는 동안 수동 고정/공유 중지된 경우
       readSig[i] = sigs[i];
       changedAt[i] = 0;
-      lockedSlots[i] = slot;
+      applyRead(i, result);
       if (slotsSignature() !== lastRenderSig) runEvaluation();   // 한 줄 읽을 때마다 즉시 반영
     }
     updateScanStatus();
@@ -513,6 +543,7 @@ function invalidateOcrCache() {
   readSig = Array(SLOT_COUNT).fill(null);                 // 모든 줄을 다시 읽게 한다
   prevSig = Array(SLOT_COUNT).fill(null);
   changedAt = Array(SLOT_COUNT).fill(0);
+  pending = Array(SLOT_COUNT).fill(null);
 }
 
 // ───────── 렌더 루프 ─────────
@@ -734,6 +765,7 @@ modalClearBtn.addEventListener('click', () => {
     lockedSlots[editingIndex] = null;
     pinned[editingIndex] = false;                         // 고정 해제 → 다시 OCR이 판단
     readSig[editingIndex] = null;                         // 이 줄을 즉시 다시 읽도록
+    pending[editingIndex] = null;
     runEvaluation();
   }
   closeModal();
