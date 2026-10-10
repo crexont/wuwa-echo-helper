@@ -25,15 +25,12 @@ h2 { margin-top: 0; color: #38bdf8; display: flex; align-items: center; gap: 8px
 .filter-chip input { cursor: pointer; margin: 0; width: 14px; height: 14px; }
 .cutoff-select { background: #262a35; color: #fff; border: 1px solid #475569; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
 
-.zoom-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #0b0c0e; border: 2px dashed #475569; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: default; margin-bottom: 12px; }
-.zoom-wrapper:hover { border-color: #3b82f6; }
 #zoomCanvas { width: 100%; height: 100%; object-fit: contain; display: block; position: absolute; top: 0; left: 0; z-index: 2; }
 /* display:none 이면 일부 브라우저가 디코딩을 멈출 수 있어 화면 밖으로 치운다 */
 video { display: block; position: fixed; left: -9999px; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
 .placeholder-guide { position: absolute; z-index: 1; text-align: center; color: #64748b; font-size: 13px; line-height: 1.5; }
 .placeholder-guide strong { color: #f1f5f9; }
 
-.perf-bar { font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; background: #14161d; padding: 8px 12px; border-radius: 8px; border: 1px solid #262a35; margin-bottom: 16px; }
 
 .stat-list-container { background: #14161b; border: 1px solid #2d313c; border-radius: 10px; padding: 14px 16px; min-height: 100px; }
 .stat-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -95,9 +92,6 @@ table.prob-grid td.label-col { background: #1a1c24; color: #cbd5e1; font-weight:
 .threshold-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #94a3b8; }
 .threshold-row input { width: 64px; background: #262a35; color: #fff; border: 1px solid #475569; padding: 5px 8px; border-radius: 6px; font-size: 13px; }
 
-.region-details { margin-bottom: 12px; background: #14161b; border: 1px solid #2d313c; border-radius: 10px; padding: 10px 14px; }
-.region-details summary { cursor: pointer; font-size: 13px; font-weight: bold; color: #38bdf8; }
-.region-body { margin-top: 10px; }
 .frame-wrapper { position: relative; width: 100%; max-width: 520px; margin: 0 auto; aspect-ratio: 16 / 9; background: #0b0c0e; border: 1px solid #2d313c; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 #frameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; z-index: 2; }
 .region-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: #64748b; }
@@ -117,9 +111,6 @@ table.prob-grid td.label-col { background: #1a1c24; color: #cbd5e1; font-weight:
 .frame-wrapper { max-width: none; margin: 0 0 8px 0; border: 2px dashed #475569; border-radius: 10px; }
 .frame-wrapper:hover { border-color: #3b82f6; }
 .region-actions { margin: 0 0 14px 0; }
-.crop-preview { margin-bottom: 12px; }
-.crop-label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
-.crop-preview .zoom-wrapper { max-width: 520px; margin: 0 auto; border-style: solid; border-width: 1px; }
 
 /* ───────── v2.0: 확대 보기 / 전체 화면 토글 ───────── */
 .region-btns { display: flex; gap: 6px; flex-shrink: 0; }
@@ -149,7 +140,6 @@ table.prob-grid td { font-size: 13px; }
 table.prob-grid td.c-lowest { color: #94a3b8 !important; }
 
 /* 상태바: 설명 문구를 지우고 카운터만 오른쪽에 */
-.perf-bar { justify-content: flex-end; }
 
 /* ───────── v2.0: 확정 슬롯 카운터를 목록 제목 옆 배지로 ───────── */
 .stat-count { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 10px; background: #14532d; color: #4ade80; font-size: 12px; font-weight: bold; vertical-align: middle; }

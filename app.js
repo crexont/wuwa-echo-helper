@@ -8,10 +8,9 @@ import { goalSuccessProb, isGoalSatisfied } from './math.js';
 // ───────── 상수 ─────────
 const SLOT_COUNT = 5;
 const SPLIT_X = 0.65;          // 슬롯 폭 중 옵션명 / 수치 경계
-const HISTORY_SIZE = 4;        // 슬롯별 최근 N회 인식 결과로 다수결
-const MIN_VOTES = 2;           // 같은 결과가 N회 이상이어야 확정
-const OCR_INTERVAL_MS = 250;
-const FRAME_DIFF_SKIP = 2.0;   // 화면이 거의 안 변했으면 OCR 재실행 생략
+const OCR_INTERVAL_MS = 80;
+const ROW_CHANGE = 2.0;        // 줄 지문 차이가 이 값 이상이면 "화면이 바뀐 줄"
+const SETTLE_MAX_MS = 600;     // 줄이 계속 움직여도(반짝임 등) 이 시간이 지나면 그냥 읽는다
 const TARGET_SLOT_PX = 90;     // 전처리 후 슬롯 높이 목표(px)
 const MIN_BOX = 0.04;
 const VIEW_PAD = 1.8;          // 확대 보기: 큰 화면에 보이는 영역 = 인식 박스의 1.8배
@@ -29,8 +28,10 @@ let loopToken = 0;
 let lastOcrTime = 0;
 let lockedSlots = Array(SLOT_COUNT).fill(null);
 let pinned = Array(SLOT_COUNT).fill(false);                       // 수동 수정한 슬롯은 OCR이 덮어쓰지 않음
-let history = Array.from({ length: SLOT_COUNT }, () => []);
-let lastRaw = null, lastSig = null, lastRenderSig = '';
+let lastRenderSig = '';
+let readSig = Array(SLOT_COUNT).fill(null);     // 줄별: 마지막으로 OCR한 순간의 화면 지문
+let prevSig = Array(SLOT_COUNT).fill(null);     // 줄별: 직전 사이클의 화면 지문 (애니메이션이 멈췄는지 판단)
+let changedAt = Array(SLOT_COUNT).fill(0);      // 줄별: 변화가 처음 감지된 시각
 let box = { ...DEFAULT_BOX };
 let viewMode = 'zoom';                                           // 'zoom' = 옵션 주변만 확대 / 'full' = 전체 화면
 let adjusting = false;                                           // true = 영역 조정 중(드래그 가능) / false = 캡처 화면(OCR이 보는 그대로)
@@ -73,8 +74,9 @@ const cropCanvas = document.createElement('canvas');
 const cropCtx = cropCanvas.getContext('2d', { willReadFrequently: true });
 const ocrSnap = document.createElement('canvas');
 const ocrSnapCtx = ocrSnap.getContext('2d', { willReadFrequently: true });
+const SIG_ROWS = 8;                // 줄당 지문 높이(px)
 const sigCanvas = document.createElement('canvas');
-sigCanvas.width = 48; sigCanvas.height = 24;
+sigCanvas.width = 48; sigCanvas.height = SIG_ROWS * SLOT_COUNT;
 const sigCtx = sigCanvas.getContext('2d', { willReadFrequently: true });
 
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
@@ -114,8 +116,9 @@ function initUI() {
   const targets = savedTargets ?? DEFAULT_TARGETS;
   if (['low', 'mid', 'high'].includes(saved.cut)) minTierCutSelect.value = saved.cut;
   if (Number.isFinite(saved.goThreshold)) goThresholdInput.value = saved.goThreshold;
-  if (saved.box && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(saved.box[k]))) box = sanitizeBox(saved.box);
-  if (!(saved.box && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(saved.box[k])))) adjusting = true;   // 처음 실행이면 영역부터 맞추도록 조정 화면으로 시작
+  const hasBox = Boolean(saved.box) && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(saved.box[k]));
+  if (hasBox) box = sanitizeBox(saved.box);
+  else adjusting = true;   // 처음 실행이면 영역부터 맞추도록 조정 화면으로 시작
   if (saved.viewMode === 'full') viewMode = 'full';
   updateView();
   applyModeUI();
@@ -358,57 +361,33 @@ function parseSlot(nameText, valText, slotNo) {
   return matchStat(nameStr, val, valStr.includes('%'));
 }
 
-async function readAllSlots(src) {
+async function readSlot(src, s) {
   const slotH = src.height / SLOT_COUNT;
   const splitX = Math.round(src.width * SPLIT_X);
-  const results = [];
-  for (let s = 0; s < SLOT_COUNT; s++) {
-    if (pinned[s]) { results.push(undefined); continue; }  // 수동 고정 슬롯은 OCR 생략
-    const y = Math.round(s * slotH), h = Math.round(slotH);
-    const left = preLeft(src, 0, y, splitX, h);
-    const right = preRight(src, splitX, y, src.width - splitX, h);
-    const [nameRet, valRet] = await Promise.all([nameWorker.recognize(left), valueWorker.recognize(right)]);
-    results.push(parseSlot(nameRet.data.text, valRet.data.text, s + 1));
-  }
-  return results;
+  const y = Math.round(s * slotH), h = Math.round(slotH);
+  const left = preLeft(src, 0, y, splitX, h);
+  const right = preRight(src, splitX, y, src.width - splitX, h);
+  const [nameRet, valRet] = await Promise.all([nameWorker.recognize(left), valueWorker.recognize(right)]);
+  return parseSlot(nameRet.data.text, valRet.data.text, s + 1);
 }
 
-// ───────── 슬롯별 다수결 안정화 ─────────
-function pushHistory(raw) {
-  raw.forEach((slot, s) => {
-    if (slot === undefined) return;
-    const h = history[s];
-    h.push({ sig: slot ? `${slot.key}|${slot.val}` : 'null', slot });
-    if (h.length > HISTORY_SIZE) h.shift();
-  });
-}
-
-function applyVotes() {
-  history.forEach((h, s) => {
-    if (pinned[s] || !h.length) return;
-    const tally = new Map();
-    h.forEach((e, i) => {
-      const t = tally.get(e.sig) || { n: 0, slot: e.slot, last: 0 };
-      t.n++; t.slot = e.slot; t.last = i;
-      tally.set(e.sig, t);
-    });
-    let winner = null;
-    for (const t of tally.values()) {
-      if (!winner || t.n > winner.n || (t.n === winner.n && t.last > winner.last)) winner = t;
-    }
-    if (winner && winner.n >= MIN_VOTES) lockedSlots[s] = winner.slot;
-  });
-}
-
-// ───────── 화면 변화 감지 (안 변했으면 OCR 생략) ─────────
-function frameSignature(src) {
+// ───────── 줄별 화면 변화 감지 ─────────
+// 같은 이미지를 Tesseract로 다시 읽으면 결과도 똑같다 → 여러 번 읽어 다수결할 필요가 없다.
+// 대신 "바뀐 줄"만, "애니메이션이 멈춘 뒤" 딱 한 번 읽고 바로 확정한다.
+function slotSignatures(src) {
   sigCtx.drawImage(src, 0, 0, sigCanvas.width, sigCanvas.height);
   const d = sigCtx.getImageData(0, 0, sigCanvas.width, sigCanvas.height).data;
-  const out = new Uint8Array(d.length / 4);
-  for (let i = 0, p = 0; p < out.length; i += 4, p++) out[p] = (d[i] + d[i + 1] + d[i + 2]) / 3;
-  return out;
+  const w = sigCanvas.width;
+  return Array.from({ length: SLOT_COUNT }, (_, s) => {
+    const out = new Uint8Array(w * SIG_ROWS);
+    for (let p = 0; p < out.length; p++) {
+      const i = (s * SIG_ROWS * w + p) * 4;
+      out[p] = (d[i] + d[i + 1] + d[i + 2]) / 3;
+    }
+    return out;
+  });
 }
-function frameDiff(a, b) {
+function sigDiff(a, b) {
   let sum = 0;
   for (let i = 0; i < a.length; i++) sum += Math.abs(a[i] - b[i]);
   return sum / a.length;
@@ -422,23 +401,36 @@ function updateScanStatus() {
     : '<span style="color:#fde047;">⏳ 에코 데이터 스캔 중...</span>';
 }
 
-async function runOcrCycle() {
+async function runOcrCycle(now) {
   isOcrBusy = true;
   try {
     if (ocrSnap.width !== cropCanvas.width || ocrSnap.height !== cropCanvas.height) {
       ocrSnap.width = cropCanvas.width; ocrSnap.height = cropCanvas.height;
     }
     ocrSnapCtx.drawImage(cropCanvas, 0, 0);               // 스냅샷을 떠서 OCR 도중 프레임이 바뀌어도 일관되게
-    const sig = frameSignature(ocrSnap);
-    if (lastSig && lastRaw && frameDiff(sig, lastSig) < FRAME_DIFF_SKIP) {
-      pushHistory(lastRaw);                               // 화면이 그대로면 직전 결과를 한 표로 인정
-    } else {
-      lastSig = sig;
-      lastRaw = await readAllSlots(ocrSnap);
-      pushHistory(lastRaw);
+    const sigs = slotSignatures(ocrSnap);
+
+    const toRead = [];
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      if (pinned[i]) continue;                            // 수동 고정 슬롯은 OCR 생략
+      const changed = !readSig[i] || sigDiff(sigs[i], readSig[i]) >= ROW_CHANGE;
+      if (!changed) { changedAt[i] = 0; continue; }       // 그대로인 줄은 OCR 비용 0
+      if (!changedAt[i]) changedAt[i] = now;
+      const settled = prevSig[i] && sigDiff(sigs[i], prevSig[i]) < ROW_CHANGE;
+      if (settled || now - changedAt[i] > SETTLE_MAX_MS) toRead.push(i);
     }
-    applyVotes();
-    if (slotsSignature() !== lastRenderSig) runEvaluation();
+    prevSig = sigs;
+
+    // 비어 있는 줄(= 방금 열린 옵션)을 먼저 읽는다
+    toRead.sort((a, b) => Boolean(lockedSlots[a]) - Boolean(lockedSlots[b]) || a - b);
+    for (const i of toRead) {
+      const slot = await readSlot(ocrSnap, i);
+      if (pinned[i] || !currentStream) continue;          // 읽는 동안 수동 고정/공유 중지된 경우
+      readSig[i] = sigs[i];
+      changedAt[i] = 0;
+      lockedSlots[i] = slot;
+      if (slotsSignature() !== lastRenderSig) runEvaluation();   // 한 줄 읽을 때마다 즉시 반영
+    }
     updateScanStatus();
   } catch (err) {
     console.error('OCR Error:', err);
@@ -500,15 +492,15 @@ function stopScreenShare() {
 function resetCurrentEcho() {
   lockedSlots = Array(SLOT_COUNT).fill(null);
   pinned = Array(SLOT_COUNT).fill(false);
-  history = Array.from({ length: SLOT_COUNT }, () => []);
-  lastRaw = null; lastSig = null;
+  invalidateOcrCache();
   runEvaluation();
   if (currentStream) ocrStatus.innerHTML = '<span style="color:#38bdf8;">🔄 새 에코 인식 대기중</span>';
 }
 
 function invalidateOcrCache() {
-  history = Array.from({ length: SLOT_COUNT }, () => []);
-  lastRaw = null; lastSig = null;
+  readSig = Array(SLOT_COUNT).fill(null);                 // 모든 줄을 다시 읽게 한다
+  prevSig = Array(SLOT_COUNT).fill(null);
+  changedAt = Array(SLOT_COUNT).fill(0);
 }
 
 // ───────── 렌더 루프 ─────────
@@ -528,7 +520,7 @@ function drawFrame(timestamp) {
 
   if (ocrReady && !isOcrBusy && timestamp - lastOcrTime > OCR_INTERVAL_MS) {
     lastOcrTime = timestamp;
-    runOcrCycle();
+    runOcrCycle(timestamp);
   }
 
   const fw = 960;
@@ -729,8 +721,7 @@ modalClearBtn.addEventListener('click', () => {
   if (editingIndex >= 0) {
     lockedSlots[editingIndex] = null;
     pinned[editingIndex] = false;                         // 고정 해제 → 다시 OCR이 판단
-    history[editingIndex] = [];
-    lastRaw = null;                                       // 정지 화면에서도 즉시 재인식하도록
+    readSig[editingIndex] = null;                         // 이 줄을 즉시 다시 읽도록
     runEvaluation();
   }
   closeModal();
