@@ -18,9 +18,11 @@ const VIEW_PAD = 1.8;          // 확대 보기: 큰 화면에 보이는 영역 
 const MIN_VIEW = 0.2;          // 확대 보기가 화면 대비 이 비율보다 작아지지 않게
 const STORAGE_KEY = 'echopago.settings.v1';
 const DEFAULT_BOX = { x: 0.129, y: 0.312, w: 0.218, h: 0.198 };   // 옵션 5줄만 딱 맞게 (왼쪽 아이콘 열 제외)
-const DEBUG = new URLSearchParams(location.search).has('debug');
+const DEBUG = new URLSearchParams(location.search).has('debug');   // ?debug 로 열면 OCR 원문을 콘솔에 출력
 // 모바일 브라우저 등 화면 공유(getDisplayMedia)를 못 쓰는 환경 → 직접 입력 모드
-const CAN_SHARE = Boolean(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);   // ?debug 로 열면 OCR 원문을 콘솔에 출력
+const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS는 PC처럼 보고함
+let CAN_SHARE = !IS_MOBILE && typeof navigator.mediaDevices?.getDisplayMedia === 'function';
 
 // ───────── 상태 ─────────
 let currentStream = null;
@@ -117,12 +119,17 @@ function getGoThreshold() {
 }
 function onSettingsChanged() { runEvaluation(); saveSettings(); }
 
+// 화면 공유 없이 직접 입력으로만 쓰는 모드
+function enterManualMode() {
+  CAN_SHARE = false;
+  document.body.classList.add('no-share');
+  $('manualNotice').hidden = false;
+  if (filterContainer.children.length) runEvaluation();   // 빈 목록 안내 문구 갱신
+}
+
 // ───────── UI 초기화 ─────────
 function initUI() {
-  if (!CAN_SHARE) {
-    document.body.classList.add('no-share');
-    $('manualNotice').hidden = false;
-  }
+  if (!CAN_SHARE) enterManualMode();
   const saved = loadSettings();
   const savedTargets = Array.isArray(saved.targets) ? saved.targets.filter((k) => k in STAT_DATABASE) : null;
   const targets = savedTargets ?? DEFAULT_TARGETS;
@@ -499,9 +506,13 @@ startShareBtn.addEventListener('click', async () => {
     currentStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 15 } }, audio: false });
   } catch (err) {
     currentStream = null;
-    if (err.name !== 'NotAllowedError') {
-      setStatus('err', `화면 공유 실패: ${err.message}`);
+    console.error(err);
+    if (err.name === 'NotAllowedError') return;                 // 사용자가 취소
+    if (err instanceof TypeError || err.name === 'NotSupportedError') {
+      enterManualMode();                                         // 지원 안 하는 브라우저 → 직접 입력 모드로 전환
+      return;
     }
+    setStatus('err', '화면 공유를 시작하지 못했어요. 다시 시도하거나 아래에서 직접 입력해주세요.');
     return;
   }
   currentStream.getVideoTracks()[0].onended = stopScreenShare;
