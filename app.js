@@ -20,9 +20,7 @@ const STORAGE_KEY = 'echopago.settings.v1';
 const DEFAULT_BOX = { x: 0.129, y: 0.312, w: 0.218, h: 0.198 };   // 옵션 5줄만 딱 맞게 (왼쪽 아이콘 열 제외)
 const DEBUG = new URLSearchParams(location.search).has('debug');   // ?debug 로 열면 OCR 원문을 콘솔에 출력
 // 모바일 브라우저 등 화면 공유(getDisplayMedia)를 못 쓰는 환경 → 직접 입력 모드
-const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS는 PC처럼 보고함
-let CAN_SHARE = !IS_MOBILE && typeof navigator.mediaDevices?.getDisplayMedia === 'function';
+let CAN_SHARE = typeof navigator.mediaDevices?.getDisplayMedia === 'function';
 
 // ───────── 상태 ─────────
 let currentStream = null;
@@ -508,10 +506,6 @@ startShareBtn.addEventListener('click', async () => {
     currentStream = null;
     console.error(err);
     if (err.name === 'NotAllowedError') return;                 // 사용자가 취소
-    if (err instanceof TypeError || err.name === 'NotSupportedError') {
-      enterManualMode();                                         // 지원 안 하는 브라우저 → 직접 입력 모드로 전환
-      return;
-    }
     setStatus('err', '화면 공유를 시작하지 못했어요. 다시 시도하거나 아래에서 직접 입력해주세요.');
     return;
   }
