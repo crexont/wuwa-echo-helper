@@ -18,7 +18,9 @@ const VIEW_PAD = 1.8;          // 확대 보기: 큰 화면에 보이는 영역 
 const MIN_VIEW = 0.2;          // 확대 보기가 화면 대비 이 비율보다 작아지지 않게
 const STORAGE_KEY = 'echopago.settings.v1';
 const DEFAULT_BOX = { x: 0.129, y: 0.312, w: 0.218, h: 0.198 };   // 옵션 5줄만 딱 맞게 (왼쪽 아이콘 열 제외)
-const DEBUG = new URLSearchParams(location.search).has('debug');   // ?debug 로 열면 OCR 원문을 콘솔에 출력
+const DEBUG = new URLSearchParams(location.search).has('debug');
+// 모바일 브라우저 등 화면 공유(getDisplayMedia)를 못 쓰는 환경 → 직접 입력 모드
+const CAN_SHARE = Boolean(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);   // ?debug 로 열면 OCR 원문을 콘솔에 출력
 
 // ───────── 상태 ─────────
 let currentStream = null;
@@ -117,6 +119,10 @@ function onSettingsChanged() { runEvaluation(); saveSettings(); }
 
 // ───────── UI 초기화 ─────────
 function initUI() {
+  if (!CAN_SHARE) {
+    document.body.classList.add('no-share');
+    $('manualNotice').hidden = false;
+  }
   const saved = loadSettings();
   const savedTargets = Array.isArray(saved.targets) ? saved.targets.filter((k) => k in STAT_DATABASE) : null;
   const targets = savedTargets ?? DEFAULT_TARGETS;
@@ -190,7 +196,9 @@ function setGoalResult(id, html, status, prob = null) {
 function renderStatList(slots, isValid, keyCount, openedCount) {
   statList.innerHTML = '';
   if (openedCount === 0) {
-    const msg = currentStream ? '0강 상태 (강화 후 데이터 대기 중)' : '에코 데이터가 없습니다. 화면을 공유해주세요.';
+    const msg = currentStream ? '0강 상태 (강화 후 데이터 대기 중)'
+      : CAN_SHARE ? '에코 데이터가 없습니다. 화면을 공유하거나 아래에서 직접 추가해주세요.'
+      : '아래 [+ 슬롯 1 직접 추가]를 눌러 열린 옵션을 입력해주세요.';
     statList.insertAdjacentHTML('beforeend', `<div class="stat-empty">${msg}</div>`);
   }
   slots.forEach((stat, idx) => {
