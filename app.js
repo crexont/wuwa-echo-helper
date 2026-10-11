@@ -765,7 +765,8 @@ function openEditModal(slotIdx) {
   editingIndex = slotIdx;
   const target = lockedSlots[slotIdx];
   const key = target ? target.key : Object.keys(STAT_DATABASE)[0];
-  editModalTitle.textContent = `슬롯 ${slotIdx + 1} 부옵션 수정`;
+  editModalTitle.textContent = target ? `슬롯 ${slotIdx + 1} 부옵션 수정` : `슬롯 ${slotIdx + 1} 부옵션 추가`;
+  modalClearBtn.style.display = target ? '' : 'none';   // 빈 슬롯을 추가할 때는 삭제 버튼 없음
   editStatKey.value = key;
   populateValueDropdown(key, target ? target.val : null);
   editModal.style.display = 'flex';
@@ -776,12 +777,21 @@ function closeModal() { editModal.style.display = 'none'; editingIndex = -1; }
 modalCancelBtn.addEventListener('click', closeModal);
 editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(); });
 
+// 슬롯 삭제
+//  - 화면 공유 중: 슬롯 위치 = 게임 화면의 줄 → 그 자리만 비우고 OCR이 다시 읽게 한다
+//  - 직접 입력(공유 안 함): 아래 슬롯들을 한 칸씩 당겨서 빈칸이 안 생기게 한다
 modalClearBtn.addEventListener('click', () => {
-  if (editingIndex >= 0) {
-    lockedSlots[editingIndex] = null;
-    pinned[editingIndex] = false;                         // 고정 해제 → 다시 OCR이 판단
-    readSig[editingIndex] = null;                         // 이 줄을 즉시 다시 읽도록
-    pending[editingIndex] = null;
+  const i = editingIndex;
+  if (i >= 0) {
+    if (currentStream) {
+      lockedSlots[i] = null;
+      pinned[i] = false;
+      readSig[i] = null;
+      pending[i] = null;
+    } else {
+      lockedSlots.splice(i, 1); lockedSlots.push(null);
+      pinned.splice(i, 1); pinned.push(false);
+    }
     runEvaluation();
   }
   closeModal();
