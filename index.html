@@ -53,10 +53,17 @@
         </div>
       </div>
 
+      <!-- 화면 공유를 지원하지 않는 기기(모바일 등)에서만 보임 -->
+      <div class="manual-notice" id="manualNotice" hidden>
+        <strong>📱 이 기기에서는 화면 공유를 쓸 수 없어요</strong>
+        <p>모바일 브라우저는 화면 공유를 지원하지 않아요. 대신 아래 <b>[+ 슬롯 직접 추가]</b>를 눌러 강화로 열린 옵션을 하나씩 입력하면, 똑같이 완성 확률과 GO / STOP을 계산해 드려요.</p>
+      </div>
+
       <div class="frame-wrapper" id="frameWrapper">
         <div class="placeholder-guide" id="framePlaceholder">
           화면 공유 시작 버튼을 누르고 게임(명조) 화면을 선택해주세요.<br>
-          <strong>게임 내 화면 설정은 전체 창 모드를 권장합니다.</strong>
+          <strong>게임 내 화면 설정은 전체 창 모드를 권장합니다.</strong><br>
+          <span class="placeholder-sub">화면 공유 없이 쓰려면 아래 [+ 슬롯 직접 추가]로 옵션을 입력해도 돼요.</span>
         </div>
         <canvas id="frameCanvas" width="960" height="540"></canvas>
       </div>

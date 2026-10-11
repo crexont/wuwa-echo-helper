@@ -237,3 +237,17 @@ td.c-lowest { color: var(--dim); }
 .footer-links a:hover { color: var(--cyan); }
 .footer-bottom { padding: 16px 0 0; font-size: 12px; color: var(--dim); }
 .footer-bottom p { margin: 0 0 4px; }
+
+/* ───────── 화면 공유 불가(모바일) → 직접 입력 모드 ───────── */
+.placeholder-sub { display: inline-block; margin-top: 8px; color: var(--dim); font-size: 12px; }
+.manual-notice { margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--cyan); border-radius: 10px; background: var(--cyan-soft); }
+.manual-notice strong { color: var(--text); font-size: 14px; }
+.manual-notice p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.manual-notice b { color: var(--cyan); }
+body.no-share #startShareBtn,
+body.no-share .status-text,
+body.no-share .frame-wrapper,
+body.no-share .region-actions { display: none; }
+body.no-share .control-header { grid-template-columns: 1fr; }
+body.no-share .stat-item-add { padding: 14px 12px; border-color: var(--cyan); color: var(--cyan); font-weight: 700; }
+body.no-share .btn-reset { min-height: 42px; }
