@@ -1,4 +1,4 @@
-/* 명조 에코파고 v2.0 — 무채색 차콜 바탕 + 청록 신호색 */
+/* 명조 에코파고 v3.0 — 무채색 차콜 바탕 + 청록 신호색 */
 
 :root {
   --bg: #1b1c1f;
@@ -143,7 +143,7 @@ video { display: block; position: fixed; left: -9999px; top: 0; width: 2px; heig
 /* 확률 막대 + GO 기준선 */
 .goal-bar { position: relative; height: 6px; margin-top: 8px; background: var(--raised); border-radius: 3px; }
 .goal-bar span { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--dim); transition: width 0.35s ease; }
-.goal-th { position: absolute; top: -4px; bottom: -4px; left: var(--go-th, 5%); width: 2px; border-radius: 1px; background: var(--muted); }
+.goal-th { position: absolute; top: -4px; bottom: -4px; left: var(--go-th, 4%); width: 2px; border-radius: 1px; background: var(--muted); }
 
 .goal-card.is-go { border: 1px solid var(--cyan); background: linear-gradient(90deg, var(--cyan-soft), transparent 80%), var(--surface); }
 .goal-card.is-go .prob-num { color: var(--cyan); }
