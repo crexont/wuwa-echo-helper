@@ -24,8 +24,6 @@
 - **오버레이 창** (v3.0): 게임 위에 항상 떠 있는 작은 창에서 부옵션과 확률을 보고, 공유·초기화·직접 추가까지 할 수 있어요.
 - **직접 입력**: 화면 공유가 안 되는 모바일에서도 빈칸을 눌러 옵션을 입력하면 똑같이 계산해요.
 
-<img src="docs/screenshot-overlay.png" alt="오버레이 창" width="300" align="right">
-
 ## 사용법
 
 1. [사이트](https://crexont.github.io/wuwa-echo-helper/)에 들어가서 **화면 공유 시작**을 누르고 명조 창을 선택해요.
@@ -36,7 +34,10 @@
 5. 잘못 읽은 칸은 눌러서 고치면 📌 고정돼요.
 6. 게임 위에 띄워 두고 싶으면 **⧉ 오버레이**를 눌러요. (크롬·엣지 PC)
 
-<br clear="right">
+<div align="center">
+  <img src="docs/screenshot-overlay.png" alt="오버레이 창" width="320"><br>
+  <sub>오버레이 창: 게임 위에 띄워 두고 부옵션과 확률을 바로 확인</sub>
+</div>
 
 ## 확률 계산 방식
 
