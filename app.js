@@ -1,4 +1,4 @@
-// app.js — 명조 에코파고 v2.0: 화면 공유, 인식 영역 조정, 결과 표시, 수동 수정
+// app.js — 명조 에코파고 v3.0: 화면 공유, 인식 영역 조정, 결과 표시, 수동 수정
 // (한 줄 읽기는 ocr.js, 어느 줄을 언제 읽을지는 scan.js, 확률 계산은 math.js)
 import {
   STAT_DATABASE, DEFAULT_TARGETS, GOAL_PRESETS, CUT_SCORE,
@@ -83,6 +83,7 @@ function loadSettings() {
 function saveSettings() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      v: 3,
       targets: getSelectedTargets(),
       cut: minTierCutSelect.value,
       goThreshold: getGoThreshold(),
@@ -119,7 +120,8 @@ function initUI() {
   const savedTargets = Array.isArray(saved.targets) ? saved.targets.filter((k) => k in STAT_DATABASE) : null;
   const targets = savedTargets ?? DEFAULT_TARGETS;
   if (['low', 'mid', 'high'].includes(saved.cut)) minTierCutSelect.value = saved.cut;
-  if (Number.isFinite(saved.goThreshold)) goThresholdInput.value = saved.goThreshold;
+  // v3.0부터 GO 기준 기본값 5% → 4% (크크+1 최적 판단 기준). 예전 기본값 그대로인 사람만 새 기본값으로 바꾼다
+  if (Number.isFinite(saved.goThreshold)) goThresholdInput.value = saved.v === undefined && saved.goThreshold === 5 ? 4 : saved.goThreshold;
   const hasBox = Boolean(saved.box) && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(saved.box[k]));
   if (hasBox) box = sanitizeBox(saved.box);
   else adjusting = true;   // 처음 실행이면 영역부터 맞추도록 조정 화면으로 시작
