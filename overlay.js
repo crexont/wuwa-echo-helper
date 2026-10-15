@@ -73,7 +73,8 @@ function renderOverlay({ sharing, slots, openedCount, goals, goThreshold }) {
     <button type="button" data-act="share" class="ov-btn ${sharing ? 'is-stop' : 'is-primary'}">${sharing ? '공유 중지' : '화면 공유 시작'}</button>
     <button type="button" data-act="reset" class="ov-btn">초기화</button>`;
 
-  $('ov-slots').innerHTML = slots.map((s, i) => {
+  const filled = slots.filter(Boolean).length;
+  $('ov-slots').innerHTML = `<div class="ov-head"><span>부옵션</span><span class="ov-count">${filled}/${slots.length}</span></div>` + slots.map((s, i) => {
     const sel = editing && editing.idx === i ? ' is-editing' : '';
     if (!s) {
       if (i === openedCount) {
@@ -92,7 +93,7 @@ function renderOverlay({ sharing, slots, openedCount, goals, goThreshold }) {
     </div>`;
   }).join('');
 
-  $('ov-goals').innerHTML = goals.map((g) => `
+  $('ov-goals').innerHTML = '<div class="ov-head"><span>목표별 완성 확률</span></div>' + goals.map((g) => `
     <div class="ov-goal is-${g.status.toLowerCase()}">
       <div class="ov-goal-top">
         <span class="ov-goal-title">${esc(g.title)}</span>
