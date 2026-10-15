@@ -11,7 +11,9 @@ const SPLIT_X = 0.65;          // 슬롯 폭 중 옵션명 / 수치 경계
 const OCR_INTERVAL_MS = 80;
 const PIXEL_CHANGE = 40;       // 지문 픽셀 밝기가 이만큼 이상 바뀌어야 "바뀐 픽셀"
 const ROW_CHANGE = 0.06;       // 줄의 6% 이상 픽셀이 바뀌어야 "화면이 바뀐 줄" (배경 파티클 정도는 무시)
-const SETTLE_MAX_MS = 600;     // 줄이 계속 움직여도(반짝임 등) 이 시간이 지나면 그냥 읽는다
+const SETTLE_MAX_MS = 600;
+const DIM_RATIO = 0.75;        // 옵션창 전체 밝기가 평소의 75% 아래로 떨어지면 "강화 연출로 어두워진 상태"
+const DIM_MAX_MS = 2500;       // 이 시간보다 오래 어두우면 연출이 아니라 원래 화면이 바뀐 것으로 본다     // 줄이 계속 움직여도(반짝임 등) 이 시간이 지나면 그냥 읽는다
 const TARGET_SLOT_PX = 90;     // 전처리 후 슬롯 높이 목표(px)
 const MIN_BOX = 0.04;
 const VIEW_PAD = 1.8;          // 확대 보기: 큰 화면에 보이는 영역 = 인식 박스의 1.8배
@@ -35,7 +37,9 @@ let lastRenderSig = '';
 let readSig = Array(SLOT_COUNT).fill(null);     // 줄별: 마지막으로 OCR한 순간의 화면 지문
 let prevSig = Array(SLOT_COUNT).fill(null);     // 줄별: 직전 사이클의 화면 지문 (애니메이션이 멈췄는지 판단)
 let changedAt = Array(SLOT_COUNT).fill(0);      // 줄별: 변화가 처음 감지된 시각
-let pending = Array(SLOT_COUNT).fill(null);     // 줄별: 확정값과 다른 결과가 한 번 나왔을 때 그 결과 (한 번 더 나오면 교체)
+let pending = Array(SLOT_COUNT).fill(null);
+let stableLum = 0;             // 평소 옵션창 밝기 (어두워짐 감지 기준)
+let dimSince = 0;              // 어두워지기 시작한 시각     // 줄별: 확정값과 다른 결과가 한 번 나왔을 때 그 결과 (한 번 더 나오면 교체)
 let box = { ...DEFAULT_BOX };
 let viewMode = 'zoom';                                           // 'zoom' = 옵션 주변만 확대 / 'full' = 전체 화면
 let adjusting = false;                                           // true = 영역 조정 중(드래그 가능) / false = 캡처 화면(OCR이 보는 그대로)
@@ -625,6 +629,25 @@ async function runOcrCycle(now) {
     ocrSnapCtx.drawImage(cropCanvas, 0, 0);               // 스냅샷을 떠서 OCR 도중 프레임이 바뀌어도 일관되게
     const sigs = slotSignatures(ocrSnap);
 
+    // 강화할 때 화면 전체가 잠깐 어두워졌다 돌아온다 → 어두운 동안은 아무 줄도 읽지 않고 기다린다.
+    // 돌아오면 원래 줄들은 마지막으로 읽었을 때와 똑같으니 다시 읽을 필요가 없고, 새로 열린 줄만 바뀐 줄로 잡힌다.
+    let lum = 0;
+    for (const sg of sigs) for (const v of sg) lum += v;
+    lum /= sigs.length * sigs[0].length;
+    if (!stableLum) stableLum = lum;
+    if (lum < stableLum * DIM_RATIO) {
+      if (!dimSince) dimSince = now;
+      if (now - dimSince < DIM_MAX_MS) {
+        if (DEBUG && dimSince === now) console.log('[화면 어두워짐] 돌아올 때까지 대기');
+        prevSig = sigs;
+        return;
+      }
+      stableLum = lum;                                    // 오래 어두우면 이게 원래 화면 → 기준을 바꾼다
+    } else {
+      dimSince = 0;
+      stableLum = stableLum * 0.8 + lum * 0.2;
+    }
+
     // 줄마다 우선순위: 0 = 다음에 열릴 줄(첫 빈 줄) / 1 = 나머지 빈 줄 / 2 = 이미 확정된 줄
     const nextOpen = lockedSlots.findIndex((x, i) => !x && !pinned[i]);
     const rank = (i) => (i === nextOpen ? 0 : lockedSlots[i] ? 2 : 1);
@@ -726,6 +749,8 @@ function invalidateOcrCache() {
   prevSig = Array(SLOT_COUNT).fill(null);
   changedAt = Array(SLOT_COUNT).fill(0);
   pending = Array(SLOT_COUNT).fill(null);
+  stableLum = 0;
+  dimSince = 0;
 }
 
 // ───────── 렌더 루프 ─────────
