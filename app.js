@@ -36,6 +36,7 @@ let pinned = Array(SLOT_COUNT).fill(false);                       // 수동 수�
 let lastRenderSig = '';
 let readSig = Array(SLOT_COUNT).fill(null);     // 줄별: 마지막으로 OCR한 순간의 화면 지문
 let prevSig = Array(SLOT_COUNT).fill(null);     // 줄별: 직전 사이클의 화면 지문 (애니메이션이 멈췄는지 판단)
+let prevSig2 = Array(SLOT_COUNT).fill(null);    // 줄별: 두 사이클 전 화면 지문 (천천히 나타나는 연출도 멈춘 뒤에 읽도록)
 let changedAt = Array(SLOT_COUNT).fill(0);      // 줄별: 변화가 처음 감지된 시각
 let pending = Array(SLOT_COUNT).fill(null);
 let stableLum = 0;             // 평소 옵션창 밝기 (어두워짐 감지 기준)
@@ -639,7 +640,7 @@ async function runOcrCycle(now) {
       if (!dimSince) dimSince = now;
       if (now - dimSince < DIM_MAX_MS) {
         if (DEBUG && dimSince === now) console.log('[화면 어두워짐] 돌아올 때까지 대기');
-        prevSig = sigs;
+        prevSig2 = prevSig; prevSig = sigs;
         return;
       }
       stableLum = lum;                                    // 오래 어두우면 이게 원래 화면 → 기준을 바꾼다
@@ -654,12 +655,17 @@ async function runOcrCycle(now) {
     const ready = [], waiting = [];
     for (let i = 0; i < SLOT_COUNT; i++) {
       if (pinned[i]) continue;                            // 수동 고정 슬롯은 OCR 생략
+      // 옵션은 위에서부터 차례로 열린다 → 다음에 열릴 줄보다 아래의 빈 줄은 읽을 필요가 없다
+      if (nextOpen >= 0 && i > nextOpen && !lockedSlots[i]) continue;
       const changed = !readSig[i] || sigDiff(sigs[i], readSig[i]) >= ROW_CHANGE;
       if (!changed) { changedAt[i] = 0; continue; }       // 그대로인 줄은 OCR 비용 0
       if (!changedAt[i]) changedAt[i] = now;
-      const settled = prevSig[i] && sigDiff(sigs[i], prevSig[i]) < ROW_CHANGE;
+      // 두 사이클 연속으로 거의 안 변했을 때 "연출이 끝났다"고 본다 (서서히 나타나는 글자를 반쯤 읽지 않도록)
+      const settled = prevSig[i] && prevSig2[i]
+        && sigDiff(sigs[i], prevSig[i]) < ROW_CHANGE && sigDiff(sigs[i], prevSig2[i]) < ROW_CHANGE;
       (settled || now - changedAt[i] > SETTLE_MAX_MS ? ready : waiting).push(i);
     }
+    prevSig2 = prevSig;
     prevSig = sigs;
 
     // 한 사이클에 한 줄만 읽고 다음 사이클에 우선순위를 다시 매긴다
@@ -675,6 +681,13 @@ async function runOcrCycle(now) {
         readSig[i] = sigs[i];
         changedAt[i] = 0;
         applyRead(i, result);
+        // 아직 안 열린 줄이 확인되면 그 아래 줄도 전부 안 열린 상태 → 읽지 않고 바로 비운다 (에코 바꿀 때 빨라짐)
+        if (result.kind === 'empty' && !lockedSlots[i]) {
+          for (let j = i + 1; j < SLOT_COUNT; j++) {
+            if (pinned[j]) continue;
+            lockedSlots[j] = null; pending[j] = null; readSig[j] = sigs[j]; changedAt[j] = 0;
+          }
+        }
         if (slotsSignature() !== lastRenderSig) runEvaluation();
       }
     }
@@ -747,6 +760,7 @@ function resetCurrentEcho() {
 function invalidateOcrCache() {
   readSig = Array(SLOT_COUNT).fill(null);                 // 모든 줄을 다시 읽게 한다
   prevSig = Array(SLOT_COUNT).fill(null);
+  prevSig2 = Array(SLOT_COUNT).fill(null);
   changedAt = Array(SLOT_COUNT).fill(0);
   pending = Array(SLOT_COUNT).fill(null);
   stableLum = 0;
