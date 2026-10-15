@@ -31,7 +31,7 @@ export const STAT_DATABASE = {
 export const DEFAULT_TARGETS = ["크확", "크피", "공%", "공효"];
 
 export const GOAL_PRESETS = [
-  { id: 'crit_0', title: '쌍크 (크크)',   type: 'crit', req: 0 },
+  { id: 'crit_0', title: '크크',          type: 'crit', req: 0 },
   { id: 'crit_1', title: '크크 + 1유효',  type: 'crit', req: 1 },
   { id: 'crit_2', title: '크크 + 2유효',  type: 'crit', req: 2 },
   { id: 'crit_3', title: '크크 + 3유효',  type: 'crit', req: 3 },

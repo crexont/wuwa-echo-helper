@@ -271,7 +271,10 @@ body.no-share .stat-item.stat-item-blank.stat-item-add { border-color: var(--cya
 /* ───────── 오버레이 창 내부 (화면 속 화면) ───────── */
 body.ov-body { padding: 10px; margin: 0; background: var(--bg); font-size: 13px; word-break: keep-all; }
 .ov-section { display: flex; flex-direction: column; gap: 4px; }
-.ov-section + .ov-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+#ov-goals { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ov-head { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 4px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.ov-count { padding: 0 6px; border-radius: 4px; background: var(--cyan-soft); color: var(--cyan); font-family: var(--num); font-size: 11px; }
+#ov-goals .ov-goal + .ov-goal { margin-top: 2px; }
 .ov-slot { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 8px; border-left: 2px solid var(--cyan); border-radius: 0 6px 6px 0; background: var(--raised); }
 .ov-icon { display: inline-block; flex-shrink: 0; width: 16px; height: 16px; background-color: var(--dim); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .ov-slot.is-valid .ov-icon { background-color: var(--cyan); }
