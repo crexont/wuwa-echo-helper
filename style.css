@@ -254,13 +254,14 @@ body.no-share .stat-item-add { padding: 14px 12px; border-color: var(--cyan); co
 body.no-share .btn-reset { min-height: 42px; }
 
 /* ───────── 빈칸 (아직 안 연 슬롯) ───────── */
-.stat-item.stat-item-blank { justify-content: space-between; border: 1px dashed var(--line); border-left: 1px dashed var(--line); border-radius: var(--radius); background: transparent; color: var(--dim); cursor: default; }
-.stat-item.stat-item-blank:hover { background: transparent; }
-.blank-no { color: var(--muted); font-weight: 500; }
+/* 채워진 칸과 같은 높이로 자리를 잡아두되, 눈에 덜 띄게. 다음에 채울 칸만 점선으로 강조 */
+.stat-item.stat-item-blank { justify-content: space-between; border: none; border-left: 2px solid var(--line); border-radius: 0 var(--radius) var(--radius) 0; background: rgba(255, 255, 255, 0.02); color: var(--dim); cursor: default; }
+.stat-item.stat-item-blank:hover { background: rgba(255, 255, 255, 0.02); }
+.blank-no { width: 20px; text-align: center; color: var(--dim); font-family: var(--num); font-size: 12px; }
 .blank-label { color: var(--dim); font-size: 12.5px; }
-.stat-item.stat-item-blank.stat-item-add { cursor: pointer; }
+.stat-item.stat-item-blank.stat-item-add { cursor: pointer; border: 1px dashed var(--line); border-radius: var(--radius); background: transparent; }
 .stat-item.stat-item-blank.stat-item-add .stat-edit-hint { color: var(--cyan); font-weight: 600; }
-.stat-item.stat-item-blank.stat-item-add:hover { border-color: var(--cyan); }
+.stat-item.stat-item-blank.stat-item-add:hover { border-color: var(--cyan); background: var(--cyan-soft); }
 body.no-share .stat-item.stat-item-blank.stat-item-add { border-color: var(--cyan); }
 
 /* ───────── 오버레이 버튼 ───────── */
