@@ -246,10 +246,11 @@ function runEvaluation() {
 // 오버레이 창에 보낼 내용: 5칸(빈칸 포함) + 목표별 확률
 function syncOverlay({ openedCount, isValid }) {
   updateOverlay({
+    sharing: Boolean(currentStream),
     openedCount,
     goThreshold: getGoThreshold(),
     slots: lockedSlots.map((s) => (s ? {
-      name: s.name, icon: iconUrl(s.key),
+      key: s.key, val: s.val, name: s.name, icon: iconUrl(s.key),
       valText: `+${s.val}${s.isPercent ? '%' : ''}`,
       tierLabel: s.tier.label, tierClass: s.tier.class, valid: isValid(s),
     } : null)),
@@ -345,7 +346,8 @@ async function runOcrCycle(now) {
 }
 
 // ───────── 화면 공유 ─────────
-startShareBtn.addEventListener('click', async () => {
+startShareBtn.addEventListener('click', () => toggleShare());
+async function toggleShare() {
   if (currentStream) return stopScreenShare();
   try {
     currentStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 15 } }, audio: false });
@@ -378,7 +380,7 @@ startShareBtn.addEventListener('click', async () => {
   if (!currentStream) return;                             // 로딩 중 공유가 중지된 경우
   ocrReady = true;
   setStatus('ok', '실시간 감시 중');
-});
+}
 
 function stopScreenShare() {
   loopToken++;                                            // 렌더 루프 종료 (중복 루프 방지)
@@ -628,32 +630,28 @@ editModal.addEventListener('click', (e) => { if (e.target === editModal) closeMo
 // 슬롯 삭제
 //  - 화면 공유 중: 슬롯 위치 = 게임 화면의 줄 → 그 자리만 비우고 OCR이 다시 읽게 한다
 //  - 직접 입력(공유 안 함): 아래 슬롯들을 한 칸씩 당겨서 빈칸이 안 생기게 한다
-modalClearBtn.addEventListener('click', () => {
-  const i = editingIndex;
-  if (i >= 0) {
-    if (currentStream) {
-      lockedSlots[i] = null;
-      pinned[i] = false;
-      forgetRow(i);
-    } else {
-      lockedSlots.splice(i, 1); lockedSlots.push(null);
-      pinned.splice(i, 1); pinned.push(false);
-    }
-    runEvaluation();
+// 슬롯 직접 입력/수정 (수정 창과 오버레이가 같이 쓴다)
+function setSlotManual(i, key, val) {
+  if (i < 0 || i >= SLOT_COUNT || !STAT_DATABASE[key]) return;
+  const { step } = nearestStep(parseFloat(val), STAT_DATABASE[key].values);
+  lockedSlots[i] = makeSlot(key, step);
+  pinned[i] = true;                                       // 수동 수정은 OCR이 덮어쓰지 않음 (새 에코는 '수동 초기화')
+  runEvaluation();
+}
+function deleteSlot(i) {
+  if (i < 0 || i >= SLOT_COUNT) return;
+  if (currentStream) {
+    lockedSlots[i] = null;
+    pinned[i] = false;
+    forgetRow(i);
+  } else {
+    lockedSlots.splice(i, 1); lockedSlots.push(null);
+    pinned.splice(i, 1); pinned.push(false);
   }
-  closeModal();
-});
-
-modalSaveBtn.addEventListener('click', () => {
-  if (editingIndex >= 0 && editingIndex < SLOT_COUNT) {
-    const key = editStatKey.value;
-    const { step } = nearestStep(parseFloat(editStatValue.value), STAT_DATABASE[key].values);
-    lockedSlots[editingIndex] = makeSlot(key, step);
-    pinned[editingIndex] = true;                          // 수동 수정은 OCR이 덮어쓰지 않음 (새 에코는 '수동 초기화')
-    runEvaluation();
-  }
-  closeModal();
-});
+  runEvaluation();
+}
+modalClearBtn.addEventListener('click', () => { deleteSlot(editingIndex); closeModal(); });
+modalSaveBtn.addEventListener('click', () => { setSlotManual(editingIndex, editStatKey.value, editStatValue.value); closeModal(); });
 
 // ───────── 오버레이 창 (게임 위에 뜨는 작은 판정 창) ─────────
 const overlayBtn = $('overlayBtn');
@@ -662,7 +660,14 @@ if (canUseOverlay() && CAN_SHARE) overlayBtn.hidden = false;
 overlayBtn.addEventListener('click', async () => {
   if (getOverlayWindow()) { closeOverlay(); return; }
   try {
-    await openOverlay({ onClose: () => { updateOverlayBtn(); restartLoop(); } });
+    await openOverlay({
+      onClose: () => { updateOverlayBtn(); restartLoop(); },
+      actions: { toggleShare, reset: resetCurrentEcho, setSlot: setSlotManual, deleteSlot },
+      statOptions: Object.keys(STAT_DATABASE).map((key) => {
+        const d = STAT_DATABASE[key];
+        return { key, name: d.name, values: d.values.map((v, i) => ({ val: v, label: `+${v}${d.isPercent ? '%' : ''} [${evaluateStepTier(i + 1, d.values.length).label}]` })) };
+      }),
+    });
     runEvaluation();                                      // 열자마자 현재 결과를 채운다
     restartLoop();
   } catch (err) {
