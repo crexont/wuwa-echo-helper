@@ -252,3 +252,44 @@ body.no-share .region-actions { display: none; }
 body.no-share .control-header { grid-template-columns: 1fr; }
 body.no-share .stat-item-add { padding: 14px 12px; border-color: var(--cyan); color: var(--cyan); font-weight: 700; }
 body.no-share .btn-reset { min-height: 42px; }
+
+/* ───────── 빈칸 (아직 안 연 슬롯) ───────── */
+.stat-item.stat-item-blank { justify-content: space-between; border: 1px dashed var(--line); border-left: 1px dashed var(--line); border-radius: var(--radius); background: transparent; color: var(--dim); cursor: default; }
+.stat-item.stat-item-blank:hover { background: transparent; }
+.blank-no { color: var(--muted); font-weight: 500; }
+.blank-label { color: var(--dim); font-size: 12.5px; }
+.stat-item.stat-item-blank.stat-item-add { cursor: pointer; }
+.stat-item.stat-item-blank.stat-item-add .stat-edit-hint { color: var(--cyan); font-weight: 600; }
+.stat-item.stat-item-blank.stat-item-add:hover { border-color: var(--cyan); }
+body.no-share .stat-item.stat-item-blank.stat-item-add { border-color: var(--cyan); }
+
+/* ───────── 오버레이 버튼 ───────── */
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.btn-overlay { padding: 5px 10px; border: 1px solid var(--cyan); border-radius: var(--radius); background: transparent; color: var(--cyan); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.btn-overlay:hover { background: var(--cyan-soft); }
+
+/* ───────── 오버레이 창 내부 (화면 속 화면) ───────── */
+body.ov-body { padding: 10px; margin: 0; background: var(--bg); font-size: 13px; word-break: keep-all; }
+.ov-section { display: flex; flex-direction: column; gap: 4px; }
+.ov-section + .ov-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.ov-slot { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 8px; border-left: 2px solid var(--cyan); border-radius: 0 6px 6px 0; background: var(--raised); }
+.ov-icon { display: inline-block; flex-shrink: 0; width: 16px; height: 16px; background-color: var(--dim); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-position: center; mask-position: center; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.ov-slot.is-valid .ov-icon { background-color: var(--cyan); }
+.ov-no { width: 12px; color: var(--dim); font-family: var(--num); font-size: 11px; }
+.ov-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-val { color: var(--muted); font-family: var(--num); font-size: 12px; }
+.ov-slot .tier-badge { font-size: 10.5px; padding: 1px 6px; white-space: nowrap; }
+.ov-slot.is-empty { border: 1px dashed var(--line); border-radius: 6px; background: transparent; color: var(--dim); }
+.ov-slot.is-missing { border-left-color: var(--amber); background: var(--amber-soft); color: var(--amber); }
+.ov-goal { padding: 5px 8px 6px; border: 1px solid var(--line); border-radius: 6px; }
+.ov-goal.is-go { border-color: var(--cyan); background: var(--cyan-soft); }
+.ov-goal-top { display: flex; align-items: center; gap: 6px; }
+.ov-goal-title { flex: 1; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.ov-goal-prob { font-family: var(--num); font-weight: 700; font-size: 14px; }
+.ov-goal.is-go .ov-goal-prob { color: var(--cyan); }
+.ov-goal.is-stop .ov-goal-prob { color: var(--amber); }
+.ov-goal .decision-badge { min-width: 44px; padding: 1px 6px; font-size: 11px; }
+.ov-goal .goal-bar { height: 4px; margin-top: 5px; }
+.ov-goal.is-go .goal-bar span { background: var(--cyan); }
+.ov-goal.is-stop .goal-bar span { background: var(--amber); }
+.ov-goal.is-done .goal-bar span { background: var(--text); }
