@@ -92,6 +92,13 @@ npx serve .
 - [패치노트 v2.0](https://arca.live/b/wutheringwaves/185575199)
 - [패치노트 v1.0](https://arca.live/b/wutheringwaves/183103882)
 
+## 라이선스
+
+© 2026 crexont. All rights reserved.
+
+사이트는 누구나 자유롭게 써도 되고, 코드는 공부 목적으로 읽어봐도 괜찮아요.
+다만 **허락 없이 코드를 복제·수정·재배포하거나, 다른 이름으로 다시 올리는 건 금지**예요. 자세한 내용은 [LICENSE](LICENSE)를 봐 주세요.
+
 ---
 
 <sub>비공식 팬 도구입니다. 게임 리소스(아이콘 등)와 상표의 권리는 Kuro Games에 있습니다.</sub>
