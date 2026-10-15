@@ -390,28 +390,26 @@ function parseSlot(nameText, valText, slotNo) {
   if (isLockedRow(nameStr)) return { kind: 'empty', nameStr };      // 아직 안 열린 줄 (확실히 비어 있음)
   if (!m || nameStr.length < 1) return { kind: 'garbage', nameStr };
   const val = parseFloat(`${m[1]}.${m[2] ?? 0}`);
-  const slot = matchStat(nameStr, val, valStr.includes('%'));
-  return slot ? { kind: 'stat', slot, nameStr } : { kind: 'garbage', nameStr };
+  const sawPercent = valStr.includes('%');
+  const slot = matchStat(nameStr, val, sawPercent);
+  return slot ? { kind: 'stat', slot, nameStr, rawVal: val, sawPercent } : { kind: 'garbage', nameStr };
 }
 
-// ───────── 옵션명 그림 기억 (한글 OCR 생략용) ─────────
-// 옵션명은 종류가 몇 개뿐이고, 같은 이름은 화면에 늘 똑같은 모양으로 그려진다.
-// 한 번 OCR로 확실히 읽은 이름은 "글자 모양 지문"으로 기억해두고,
-// 다음부터 같은 모양이 나오면 무거운 한글 OCR 없이 숫자 OCR만 돌린다.
-const FP_MATCH = 0.12;               // 어긋난 글자 픽셀 비율이 이 이하면 같은 이름 후보
-const FP_MARGIN = 0.08;              // 다른 이름 후보보다 이만큼 이상 확실히 가까워야 채택 (애매하면 정식 OCR)
+// ───────── 글자 그림 기억 (OCR 생략용) ─────────
+// 옵션명은 10여 종, 수치도 단계값 몇십 종뿐이고, 같은 글자는 화면에 늘 똑같은 모양으로 그려진다.
+// 한 번 OCR로 확실히 읽은 글자는 "글자 모양 지문"으로 기억해두고, 같은 모양이 다시 나오면 OCR(줄당 약 1초) 없이 바로 쓴다.
 const FP_SIZE_TOL = 4;               // 글자 영역 가로·세로 크기 차이 허용(px) — 파티클이 글자에 붙으면 몇 px 커질 수 있음
 const FP_SHIFT = 3;                  // 비교할 때 맞춰보는 최대 어긋남(px)
-const FP_SPECK = 0.18;               // 가로·세로 모두 칸 높이의 18%보다 작은 덩어리는 파티클로 보고 지움
-const NAME_CACHE_MAX = 40;
-const FP_CONFIRM = 2;                // 기억을 쓰려면 같은 결과가 이만큼 확인돼야 함
-const FP_CLEAN_READ = 0.85;          // OCR이 이름을 이 정도로 정확히 읽었으면 한 번에 확정
-let nameCache = [];                  // { bits, w, h, ink, kind: 'empty' | 'label', label }
+const FP_SPECK_NAME = 0.18;          // 옵션명: 칸 높이의 18%보다 작은 덩어리는 파티클로 보고 지움
+const FP_SPECK_VALUE = 0.18;         // 수치도 같은 기준으로 점을 지우되, 소수점 자리의 점은 되살린다 (keepDots)
+const FP_CLEAN_READ = 0.85;          // OCR이 옵션명을 이 정도로 정확히 읽었으면 한 번에 확정
+const LOCKED_WIDTH = 0.85;           // 옵션명 칸을 85% 넘게 채우며 오른쪽 끝까지 이어지는 글자 = "+20까지 강화 및…" 안내 줄
+const BLANK_SKIP_MAX = 3;            // 글자가 안 보이는 줄은 이 횟수까지는 OCR 없이 넘김 (그 뒤엔 확인차 OCR)
 
-// 원본 화면(확대 전)의 옵션명 칸 → 지문. 글자가 없으면 null
+// 원본 화면(확대 전)의 칸 → 지문. 글자가 없으면 null
 // 확대하면 줄마다 픽셀 위상이 달라져 모양이 미묘하게 바뀌므로, 게임이 그린 원래 픽셀 그대로 비교한다.
 // 1) 흑백 + 자동 임계값으로 글자만 남김  2) 작은 점(파티클)은 덩어리 단위로 지움  3) 글자 영역만 잘라서 저장
-function nameFingerprint(srcCtx, sx, sy, sw, sh) {
+function textFingerprint(srcCtx, sx, sy, sw, sh, speck, keepDots = false) {
   const w = sw, h = sh, n = w * h;
   const d = srcCtx.getImageData(sx, sy, sw, sh).data;
   const gray = new Uint8Array(n), hist = new Uint32Array(256);
@@ -425,7 +423,7 @@ function nameFingerprint(srcCtx, sx, sy, sw, sh) {
 
   // 연결 요소로 작은 점 제거
   const label = new Int32Array(n).fill(-1), small = [], comps = [], stack = [];
-  const minSize = h * FP_SPECK;
+  const minSize = h * speck;
   for (let p = 0; p < n; p++) {
     if (!on[p] || label[p] !== -1) continue;
     const id = small.length;
@@ -464,6 +462,14 @@ function nameFingerprint(srcCtx, sx, sy, sw, sh) {
       cx0 = Math.min(cx0, c.x0); cx1 = Math.max(cx1, c.x1); cy0 = Math.min(cy0, c.y0); cy1 = Math.max(cy1, c.y1);
     });
   }
+  // 수치의 소수점(.)은 작아서 위에서 지워진다 → 글자 줄 안쪽 아래쪽(밑줄 높이)에 있는 작은 점은 되살린다
+  if (keepDots) {
+    const dotTop = cy0 + (cy1 - cy0) * 0.6;
+    comps.forEach((c, i) => {
+      if (keep[i] || !small[i]) return;
+      if (c.x0 > cx0 && c.x1 < cx1 && c.y0 >= dotTop && c.y1 <= cy1 + 1) keep[i] = 1;
+    });
+  }
   for (let i = 0; i < small.length; i++) small[i] = !keep[i];   // 이후엔 "남긴 덩어리"만 글자로 취급
   let bx0 = w, by0 = h, bx1 = -1, by1 = -1, ink = 0;
   for (let p = 0; p < n; p++) {
@@ -481,7 +487,7 @@ function nameFingerprint(srcCtx, sx, sy, sw, sh) {
       bits[y * fw + x] = label[p] >= 0 && !small[label[p]] ? 1 : 0;
     }
   }
-  return { bits, w: fw, h: fh, ink };
+  return { bits, w: fw, h: fh, ink, right: bx1, regionW: w };
 }
 // 두 지문의 차이 = 어긋난 글자 픽셀 수 ÷ 글자 픽셀 수 (0 = 똑같음). 크기가 다르면 다른 이름.
 // 파티클이 글자 위아래에 붙어 영역이 몇 px 밀릴 수 있어서 ±FP_SHIFT px 어긋남까지 맞춰본다
@@ -499,65 +505,102 @@ function fpDiff(a, b) {
   }
   return best;
 }
-// 같은 모양으로 기억된 항목 (확정 여부 무관)
-function findShape(fp) {
-  let best = null, bestD = Infinity;
-  for (const e of nameCache) {
-    const d = fpDiff(fp, e);
-    if (d < bestD) { bestD = d; best = e; }
+// 지문 → 뜻 을 기억하는 저장소. 옵션명용 / 수치용 두 개를 쓴다
+function createShapeMemory({ match, margin, confirm = 2, max = 60 }) {
+  let items = [];                                  // { ...지문, meaning, votes }
+  const sameMeaning = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  function find(fp) {
+    let best = null, bestD = Infinity;
+    for (const e of items) {
+      const d = fpDiff(fp, e);
+      if (d < bestD) { bestD = d; best = e; }
+    }
+    return best && bestD <= match ? { entry: best, d: bestD } : null;
   }
-  return best && bestD <= FP_MATCH ? { entry: best, d: bestD } : null;
+  return {
+    // OCR을 생략해도 될 만큼 확실한 기억만 돌려준다 (비슷한 모양의 다른 뜻이 있으면 null)
+    lookup(fp) {
+      if (!fp) return null;
+      const hit = find(fp);
+      if (!hit || hit.entry.votes < confirm) return null;
+      const rival = items.some((e) => e !== hit.entry && !sameMeaning(e.meaning, hit.entry.meaning) && fpDiff(fp, e) < hit.d + margin);
+      return rival ? null : hit.entry.meaning;
+    },
+    // OCR 결과를 기억. clean(깔끔하게 읽음)이면 바로 확정, 아니면 같은 결과가 한 번 더 나와야 확정
+    remember(fp, meaning, clean) {
+      if (!fp || !meaning) return;
+      const hit = find(fp);
+      if (hit && sameMeaning(hit.entry.meaning, meaning)) { hit.entry.votes++; return; }
+      if (hit) { Object.assign(hit.entry, fp, { meaning, votes: clean ? confirm : 1 }); return; }   // 같은 모양인데 다른 결과 → 다시 시작
+      items.push({ ...fp, meaning, votes: clean ? confirm : 1 });
+      if (items.length > max) items.shift();
+    },
+    clear() { items = []; },
+  };
 }
-// OCR을 생략해도 될 만큼 확실한 기억만 돌려준다
-function lookupName(fp) {
-  const hit = findShape(fp);
-  if (!hit || hit.entry.votes < FP_CONFIRM) return null;
-  // 비슷한 모양의 다른 이름이 있으면(예: 공명 스킬 / 공명 해방) 애매하므로 정식 OCR
-  const rival = nameCache.some((e) => e !== hit.entry && !sameMeaning(e, hit.entry) && fpDiff(fp, e) < hit.d + FP_MARGIN);
-  return rival ? null : hit.entry;
-}
-const sameMeaning = (a, b) => a.kind === b.kind && a.label === b.label;
-// 정식 OCR 결과를 기억. 이름을 아주 깔끔하게 읽었으면 바로 확정, 아니면 같은 결과가 한 번 더 나와야 확정
-function rememberName(fp, result) {
-  if (!fp || result.kind === 'garbage') return;
-  const meaning = result.kind === 'empty'
-    ? { kind: 'empty' }
-    : { kind: 'label', label: STAT_DATABASE[result.slot.key].label };
-  const clean = result.kind === 'empty' || nameSimilarity(result.nameStr, meaning.label) >= FP_CLEAN_READ;
-  const hit = findShape(fp);
-  if (hit && sameMeaning(hit.entry, meaning)) { hit.entry.votes++; return; }
-  if (hit) { Object.assign(hit.entry, fp, meaning, { votes: clean ? FP_CONFIRM : 1 }); return; }   // 같은 모양인데 다른 결과 → 새 결과로 다시 시작
-  nameCache.push({ ...fp, ...meaning, votes: clean ? FP_CONFIRM : 1 });
-  if (nameCache.length > NAME_CACHE_MAX) nameCache.shift();
-}
-function clearNameCache() { nameCache = []; }   // 인식 영역이 바뀌면 글자 모양도 바뀌므로 비운다
+const nameMemory = createShapeMemory({ match: 0.12, margin: 0.08, max: 40 });
+const valueMemory = createShapeMemory({ match: 0.07, margin: 0.06, max: 80 });   // 숫자 하나 차이(12.6 / 12.8)도 있어서 더 엄격하게
+function clearNameCache() { nameMemory.clear(); valueMemory.clear(); }   // 인식 영역이 바뀌면 글자 모양도 바뀌므로 비운다
+let blankCount = Array(SLOT_COUNT).fill(0);
 
 async function readSlot(src, s) {
   const slotH = src.height / SLOT_COUNT;
   const splitX = Math.round(src.width * SPLIT_X);
   const y = Math.round(s * slotH), h = Math.round(slotH);
+  const ctx = src.getContext('2d');
   const t0 = performance.now();
-  const fp = nameFingerprint(src.getContext('2d'), 0, y, splitX, h);   // 확대 전 원본 픽셀로 지문
-  const hit = fp && lookupName(fp);
+  const ms = () => `${(performance.now() - t0).toFixed(0)}ms`;
+  const fpName = textFingerprint(ctx, 0, y, splitX, h, FP_SPECK_NAME);   // 확대 전 원본 픽셀로 지문
 
-  if (hit) {
-    if (hit.kind === 'empty') {                                   // 아직 안 열린 줄: OCR 0번
-      if (DEBUG) console.log(`[슬롯 ${s + 1}] 빈 줄 (기억) ${(performance.now() - t0).toFixed(0)}ms`);
-      return { kind: 'empty' };
+  // 1) 옵션명 칸에 글자가 없음 → 연출 중이거나 빈 화면. OCR 안 하고 넘김
+  if (!fpName) {
+    if (++blankCount[s] <= BLANK_SKIP_MAX) {
+      if (DEBUG) console.log(`[슬롯 ${s + 1}] 글자 없음 → 건너뜀 ${ms()}`);
+      return { kind: 'garbage' };
     }
-    const right = preRight(src, splitX, y, src.width - splitX, h);
-    const valRet = await valueWorker.recognize(right);            // 숫자 OCR만
-    const r = parseSlot(hit.label, valRet.data.text, s + 1);
-    if (DEBUG) console.log(`[슬롯 ${s + 1}] 이름 기억 사용 → ${r.kind} ${(performance.now() - t0).toFixed(0)}ms`);
-    if (r.kind === 'stat') return r;                              // 아니면(수치가 이상함) 이번엔 정식 OCR로 다시 읽는다
+  } else blankCount[s] = 0;
+
+  // 2) 옵션명 칸을 오른쪽 끝까지 꽉 채운 긴 글자 = 아직 안 열린 줄 안내문 → OCR 없이 빈 줄
+  if (fpName && fpName.right >= fpName.regionW - 4 && fpName.w >= fpName.regionW * LOCKED_WIDTH) {
+    if (DEBUG) console.log(`[슬롯 ${s + 1}] 안 열린 줄 (모양) ${ms()}`);
+    return { kind: 'empty' };
   }
 
-  const left = preLeft(src, 0, y, splitX, h);
-  const right = preRight(src, splitX, y, src.width - splitX, h);
-  const [nameRet, valRet] = await Promise.all([nameWorker.recognize(left), valueWorker.recognize(right)]);
-  const r = parseSlot(nameRet.data.text, valRet.data.text, s + 1);
-  rememberName(fp, r);
-  if (DEBUG) console.log(`[슬롯 ${s + 1}] 정식 OCR → ${r.kind} ${(performance.now() - t0).toFixed(0)}ms`);
+  // 3) 기억해 둔 글자 모양 확인
+  const nameHit = nameMemory.lookup(fpName);
+  if (nameHit && nameHit.kind === 'empty') {
+    if (DEBUG) console.log(`[슬롯 ${s + 1}] 안 열린 줄 (기억) ${ms()}`);
+    return { kind: 'empty' };
+  }
+  const fpValue = textFingerprint(ctx, splitX, y, src.width - splitX, h, FP_SPECK_VALUE, true);
+  const valueHit = valueMemory.lookup(fpValue);
+  if (nameHit && valueHit) {
+    const r = parseSlot(nameHit.label, valueHit.text, s + 1);
+    if (DEBUG) console.log(`[슬롯 ${s + 1}] 이름·수치 모두 기억 → ${r.kind} ${ms()}`);
+    if (r.kind === 'stat') return r;
+  }
+
+  // 4) 기억에 없는 쪽만 OCR (둘 다 기억이 안 맞았으면 둘 다)
+  const useName = nameHit && !(valueHit && nameHit);   // 둘 다 기억인데 결과가 이상했으면 둘 다 다시 읽는다
+  const useValue = valueHit && !(valueHit && nameHit);
+  const [nameText, valueText] = await Promise.all([
+    useName ? nameHit.label : nameWorker.recognize(preLeft(src, 0, y, splitX, h)).then((r) => r.data.text),
+    useValue ? valueHit.text : valueWorker.recognize(preRight(src, splitX, y, src.width - splitX, h)).then((r) => r.data.text),
+  ]);
+  const r = parseSlot(nameText, valueText, s + 1);
+
+  // 5) 이번에 OCR로 읽은 쪽을 기억
+  if (r.kind === 'empty') nameMemory.remember(fpName, { kind: 'empty' }, true);
+  if (r.kind === 'stat') {
+    const label = STAT_DATABASE[r.slot.key].label;
+    if (!useName) nameMemory.remember(fpName, { kind: 'label', label }, nameSimilarity(r.nameStr, label) >= FP_CLEAN_READ);
+    if (!useValue) {
+      const canonical = `${r.slot.val}${r.slot.isPercent ? '%' : ''}`;
+      const clean = r.rawVal === r.slot.val && r.sawPercent === r.slot.isPercent;   // 단계값과 정확히 같게 읽었을 때만 바로 확정
+      valueMemory.remember(fpValue, { text: canonical }, clean);
+    }
+  }
+  if (DEBUG) console.log(`[슬롯 ${s + 1}] OCR(${useName ? '' : '옵션명 '}${useValue ? '' : '수치'}) → ${r.kind} ${ms()}`);
   return r;
 }
 
@@ -765,6 +808,7 @@ function invalidateOcrCache() {
   pending = Array(SLOT_COUNT).fill(null);
   stableLum = 0;
   dimSince = 0;
+  blankCount = Array(SLOT_COUNT).fill(0);
 }
 
 // ───────── 렌더 루프 ─────────
