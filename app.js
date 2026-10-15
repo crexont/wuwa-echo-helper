@@ -8,6 +8,7 @@ import { goalSuccessProb, isGoalSatisfied } from './math.js';
 import { SLOT_COUNT, SPLIT_X, clamp } from './config.js';
 import { initOcr, clearNameCache } from './ocr.js';
 import { initScanner, scanOnce, invalidateScan, forgetRow } from './scan.js';
+import { canUseOverlay, openOverlay, closeOverlay, getOverlayWindow, updateOverlay } from './overlay.js';
 
 // ───────── 상수 ─────────
 const OCR_INTERVAL_MS = 80;
@@ -72,6 +73,7 @@ const ocrSnap = document.createElement('canvas');
 const ocrSnapCtx = ocrSnap.getContext('2d', { willReadFrequently: true });
 
 // 스탯 아이콘: PNG 모양만 따서(mask) 글자색으로 칠한다 → 유효옵은 청록, 나머지는 회색
+const iconUrl = (key) => `./icons/${STAT_DATABASE[key].icon}.png`;
 const statIcon = (key) => `<i class="stat-icon" style="--icon:url('./icons/${STAT_DATABASE[key].icon}.png')" aria-hidden="true"></i>`;
 
 // ───────── 설정 저장/복원 ─────────
@@ -172,7 +174,13 @@ function buildBase(goal, validKeys) {
 }
 
 // prob: 0~1 (막대 길이). 숫자가 없는 상태(대기/달성)는 null
+const goalResults = {};   // 오버레이에 보낼 목표별 결과
 function setGoalResult(id, html, status, prob = null) {
+  goalResults[id] = {
+    status,
+    prob: status === 'DONE' ? 1 : prob ?? 0,
+    probText: status === 'WAIT' ? '—' : status === 'DONE' ? '달성' : `${((prob ?? 0) * 100).toFixed(2)}%`,
+  };
   $(`prob-${id}`).innerHTML = html;
   const badge = $(`badge-${id}`);
   badge.className = `decision-badge badge-${status.toLowerCase()}`;
@@ -185,10 +193,9 @@ function setGoalResult(id, html, status, prob = null) {
 
 function renderStatList(slots, isValid, keyCount, openedCount) {
   statList.innerHTML = '';
-  if (openedCount === 0) {
-    const msg = currentStream ? '0강 상태 (강화 후 데이터 대기 중)'
-      : CAN_SHARE ? '에코 데이터가 없습니다. 화면을 공유하거나 아래에서 직접 추가해주세요.'
-      : '아래 [+ 슬롯 1 직접 추가]를 눌러 열린 옵션을 입력해주세요.';
+  if (openedCount === 0 && !currentStream) {
+    const msg = CAN_SHARE ? '화면을 공유하거나, 아래 빈칸에 직접 추가해주세요.'
+      : '아래 [+ 직접 추가]를 눌러 열린 옵션을 입력해주세요.';
     statList.insertAdjacentHTML('beforeend', `<div class="stat-empty">${msg}</div>`);
   }
   slots.forEach((stat, idx) => {
@@ -217,16 +224,40 @@ function renderStatList(slots, isValid, keyCount, openedCount) {
     row.addEventListener('click', () => openEditModal(idx));
     statList.appendChild(row);
   });
-  if (openedCount < SLOT_COUNT) {
-    const add = document.createElement('div');
-    add.className = 'stat-item stat-item-add';
-    add.textContent = `+ 슬롯 ${openedCount + 1} 직접 추가`;
-    add.addEventListener('click', () => openEditModal(openedCount));
-    statList.appendChild(add);
+  // 아직 안 연 칸은 "빈칸"으로 보여준다. 바로 다음 칸만 직접 추가 가능 (옵션은 위에서부터 차례로 열리므로)
+  for (let idx = openedCount; idx < SLOT_COUNT; idx++) {
+    const row = document.createElement('div');
+    row.className = 'stat-item stat-item-blank';
+    row.innerHTML = `<div class="stat-name"><span class="blank-no">슬롯 ${idx + 1}</span><span class="blank-label">빈칸</span></div>`;
+    if (idx === openedCount) {
+      row.classList.add('stat-item-add');
+      row.insertAdjacentHTML('beforeend', '<span class="stat-edit-hint">+ 직접 추가</span>');
+      row.addEventListener('click', () => openEditModal(idx));
+    }
+    statList.appendChild(row);
   }
 }
 
 function runEvaluation() {
+  const ctx = evaluate();
+  syncOverlay(ctx);
+}
+
+// 오버레이 창에 보낼 내용: 5칸(빈칸 포함) + 목표별 확률
+function syncOverlay({ openedCount, isValid }) {
+  updateOverlay({
+    openedCount,
+    goThreshold: getGoThreshold(),
+    slots: lockedSlots.map((s) => (s ? {
+      name: s.name, icon: iconUrl(s.key),
+      valText: `+${s.val}${s.isPercent ? '%' : ''}`,
+      tierLabel: s.tier.label, tierClass: s.tier.class, valid: isValid(s),
+    } : null)),
+    goals: GOAL_PRESETS.map((g) => ({ title: g.title, ...(goalResults[g.id] || { status: 'WAIT', prob: 0, probText: '—' }) })),
+  });
+}
+
+function evaluate() {
   const selectedTargets = getSelectedTargets();
   const cutScore = CUT_SCORE[minTierCutSelect.value];
   const goThreshold = getGoThreshold() / 100;
@@ -254,7 +285,7 @@ function runEvaluation() {
   else if (hasDup) blocked = '같은 옵션이 중복 인식됐어요 — 수정해주세요';
   if (blocked) {
     GOAL_PRESETS.forEach((g) => setGoalResult(g.id, blocked, 'WAIT'));
-    return;
+    return { openedCount, isValid };
   }
 
   const validKeys = slots.filter(isValid).map((s) => s.key);
@@ -280,6 +311,7 @@ function runEvaluation() {
     if (prob === 0) { setGoalResult(goal.id, '<span class="prob-num">0%</span><span class="prob-label">수학적 달성 불가</span>', 'STOP', 0); return; }
     setGoalResult(goal.id, `<span class="prob-num">${(prob * 100).toFixed(2)}%</span><span class="prob-label">최종 완성 확률</span>`, prob >= goThreshold ? 'GO' : 'STOP', prob);
   });
+  return { openedCount, isValid };
 }
 
 // 상태 표시 (kind: idle | busy | ok | info | err → CSS 점 색)
@@ -333,8 +365,7 @@ startShareBtn.addEventListener('click', async () => {
   framePlaceholder.style.display = 'none';
   setStatus('busy', 'OCR 엔진 로드 중');
 
-  const token = ++loopToken;                              // 미리보기는 OCR 로딩과 상관없이 바로 시작
-  requestAnimationFrame((ts) => renderLoop(ts, token));
+  restartLoop();                                          // 미리보기는 OCR 로딩과 상관없이 바로 시작
   runEvaluation();
 
   try {
@@ -371,10 +402,17 @@ function resetCurrentEcho() {
 }
 
 // ───────── 렌더 루프 ─────────
+function nextFrame(cb) { return (getOverlayWindow() || globalThis).requestAnimationFrame(cb); }
 function renderLoop(timestamp, token) {
   if (token !== loopToken || !currentStream) return;
   if (gameVideo.videoWidth) drawFrame(timestamp);
-  requestAnimationFrame((ts) => renderLoop(ts, token));
+  nextFrame((ts) => renderLoop(ts, token));
+}
+// 루프를 새로 건다 (오버레이를 열고 닫을 때: 어느 창의 화면 갱신에 맞출지 바뀜)
+function restartLoop() {
+  if (!currentStream) return;
+  const token = ++loopToken;
+  nextFrame((ts) => renderLoop(ts, token));
 }
 
 function drawFrame(timestamp) {
@@ -615,6 +653,22 @@ modalSaveBtn.addEventListener('click', () => {
     runEvaluation();
   }
   closeModal();
+});
+
+// ───────── 오버레이 창 (게임 위에 뜨는 작은 판정 창) ─────────
+const overlayBtn = $('overlayBtn');
+function updateOverlayBtn() { overlayBtn.textContent = getOverlayWindow() ? '오버레이 닫기' : '⧉ 오버레이'; }
+if (canUseOverlay() && CAN_SHARE) overlayBtn.hidden = false;
+overlayBtn.addEventListener('click', async () => {
+  if (getOverlayWindow()) { closeOverlay(); return; }
+  try {
+    await openOverlay({ onClose: () => { updateOverlayBtn(); restartLoop(); } });
+    runEvaluation();                                      // 열자마자 현재 결과를 채운다
+    restartLoop();
+  } catch (err) {
+    console.error('오버레이 열기 실패:', err);
+  }
+  updateOverlayBtn();
 });
 
 // ───────── 시작 ─────────
