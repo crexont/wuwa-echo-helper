@@ -195,11 +195,6 @@ function setGoalResult(id, html, status, prob = null) {
 
 function renderStatList(slots, isValid, keyCount, openedCount) {
   statList.innerHTML = '';
-  if (openedCount === 0 && !currentStream) {
-    const msg = CAN_SHARE ? '화면을 공유하거나, 아래 빈칸에 직접 추가해주세요.'
-      : '아래 [+ 직접 추가]를 눌러 열린 옵션을 입력해주세요.';
-    statList.insertAdjacentHTML('beforeend', `<div class="stat-empty">${msg}</div>`);
-  }
   slots.forEach((stat, idx) => {
     const row = document.createElement('div');
     row.className = 'stat-item';
@@ -230,7 +225,7 @@ function renderStatList(slots, isValid, keyCount, openedCount) {
   for (let idx = openedCount; idx < SLOT_COUNT; idx++) {
     const row = document.createElement('div');
     row.className = 'stat-item stat-item-blank';
-    row.innerHTML = `<div class="stat-name"><span class="blank-no">슬롯 ${idx + 1}</span><span class="blank-label">빈칸</span></div>`;
+    row.innerHTML = `<div class="stat-name"><span class="blank-no">${idx + 1}</span><span class="blank-label">빈칸</span></div>`;
     if (idx === openedCount) {
       row.classList.add('stat-item-add');
       row.insertAdjacentHTML('beforeend', '<span class="stat-edit-hint">+ 직접 추가</span>');
