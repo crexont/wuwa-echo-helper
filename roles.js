@@ -1,4 +1,4 @@
-// roles.js — 명조 에코파고 v3.0: 공명자 선택 (시안)
+// roles.js — 명조 에코파고 v3.0: 공명자 선택
 // 캐릭터를 고르면 그 캐릭터의 유효옵으로 체크박스를 바꾸고, 오른쪽에 일러스트 카드를 띄운다.
 // app.js는 건드리지 않는다: 유효옵 체크박스를 대신 눌러서(change 이벤트) 기존 저장·계산 흐름을 그대로 탄다.
 // 메인 화면에는 고른 캐릭터 + 최근 고른 캐릭터만 보이고, 나머지는 [전체 공명자] 창에서 검색·속성별로 고른다.
@@ -138,6 +138,16 @@ function showShowcase(role) {
 
 function setNote(text) { roleNote.textContent = text; }
 
+// 유효옵에 크확·크피가 있으면 딜러(크크 목표), 없으면 서포터(서포터 목표)를 강조한다.
+// app.js가 목표 카드의 class를 매번 덮어쓰므로 카드가 아니라 목록(#dashboardList)에 표시를 단다.
+const isSupport = (role) => !targetsOf(role).some((k) => k === '크확' || k === '크피');
+function setGoalFocus(role) {
+  const list = $('dashboardList');
+  if (!list) return;
+  if (role) list.dataset.focus = isSupport(role) ? 'free' : 'crit';
+  else delete list.dataset.focus;
+}
+
 // 얼굴 타일: 정사각형 얼굴 + 아래 이름. 속성은 얼굴 오른쪽 아래 작은 아이콘과 밑줄 색으로 보여준다
 function buildTile(role) {
   const btn = document.createElement('button');
@@ -245,6 +255,7 @@ function selectRole(id) {
   store.set(ROLE_KEY, currentId);
   if (role) pushRecent(role.id);
   showShowcase(role);
+  setGoalFocus(role);
   renderStrip();
   if (role) {
     applyTargets(targetsOf(role));
@@ -254,75 +265,14 @@ function selectRole(id) {
   }
 }
 
-// ───────── 편집 모드 (?edit) ─────────
-// 화면에서 캐릭터별 유효옵을 고치고 presets.js에 바로 쓴다 (크롬·엣지는 파일에 직접, 다른 브라우저는 내려받기)
-const editMode = new URLSearchParams(location.search).has('edit');
-const edited = new Set();   // 저장했지만 아직 파일에 안 쓴 캐릭터
-let presetsFile = null;     // 처음 [presets.js에 쓰기] 때 고른 파일
-
-function setEditStatus(text) { $('roleEditStatus').textContent = text; }
-
-function saveCurrentPreset() {
-  const role = findRole(currentId);
-  if (!role) { setEditStatus('먼저 캐릭터를 골라 주세요.'); return; }
-  const order = ['크확', '크피', '공%', '깡공', '공효', '체%', '깡체', '방%', '깡방', '일공피', '강공피', '스킬피', '해방피'];
-  PRESETS[role.id] = [...filterContainer.querySelectorAll('input:checked')].map((cb) => cb.value).sort((a, b) => order.indexOf(a) - order.indexOf(b));
-  edited.add(role.id);
-  showShowcase(role);
-  setEditStatus(`${role.name} 저장 · 파일에 아직 안 씀 (${edited.size}명)`);
-}
-
-// presets.js 원문에서 바뀐 캐릭터 줄의 [ ] 부분만 바꾼다 (주석은 그대로)
-async function buildPresetsText() {
-  let text = await (await fetch('./presets.js', { cache: 'no-store' })).text();
-  for (const id of edited) {
-    const arr = `[${PRESETS[id].map((k) => `'${k}'`).join(', ')}]`;
-    const re = new RegExp(`^(\\s*'${id}':\\s*)\\[[^\\]]*\\]`, 'm');
-    text = re.test(text) ? text.replace(re, `$1${arr}`) : text.replace(/\n};\s*$/, `\n  '${id}': ${arr},  // ${findRole(id)?.name ?? ''}\n};\n`);
-  }
-  return text;
-}
-
-async function writePresets() {
-  if (!edited.size) { setEditStatus('저장한 캐릭터가 없어요.'); return; }
-  const text = await buildPresetsText();
-  try {
-    if (window.showSaveFilePicker) {
-      presetsFile ??= await window.showSaveFilePicker({ suggestedName: 'presets.js', types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }] });
-      const w = await presetsFile.createWritable();
-      await w.write(text);
-      await w.close();
-      setEditStatus(`presets.js에 썼어요 (${edited.size}명).`);
-    } else {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([text], { type: 'text/javascript' }));
-      a.download = 'presets.js';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setEditStatus('presets.js를 내려받았어요. 프로젝트 폴더의 presets.js를 이 파일로 바꿔 주세요.');
-    }
-    edited.clear();
-  } catch (e) {
-    if (e.name !== 'AbortError') setEditStatus(`쓰기 실패: ${e.message}`);
-  }
-}
-
-function initEditMode() {
-  if (!editMode) return;
-  $('roleEdit').hidden = false;
-  $('roleEditSave').addEventListener('click', saveCurrentPreset);
-  $('roleEditWrite').addEventListener('click', writePresets);
-  window.addEventListener('beforeunload', (e) => { if (edited.size) { e.preventDefault(); e.returnValue = ''; } });
-}
-
 function init() {
   if (!section || !strip || !filterContainer || !modal || !showcase) return;
-  initEditMode();
 
   // 새로고침했을 때는 화면만 복원한다 (유효옵은 app.js가 저장해 둔 값을 그대로 쓴다)
   const saved = findRole(store.get(ROLE_KEY));
   currentId = saved ? saved.id : null;
   showShowcase(saved);
+  setGoalFocus(saved);
   renderStrip();
   setNote(saved ? `${saved.name} 선택 중` : '캐릭터를 고르면 유효옵이 자동으로 맞춰져요.');
 

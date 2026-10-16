@@ -39,17 +39,10 @@
 
       <div class="role-section" id="roleSection">
         <div class="filter-header">
-          <div class="filter-label">공명자 선택 <span class="role-tag">시안</span></div>
+          <div class="filter-label">공명자 선택</div>
           <span class="role-note" id="roleNote"></span>
         </div>
         <div class="role-strip" id="roleStrip"></div>
-        <!-- 주소 끝에 ?edit 를 붙이면 보인다: 캐릭터별 유효옵을 고쳐서 presets.js에 저장 -->
-        <div class="role-edit" id="roleEdit" hidden>
-          <strong>편집 모드</strong>
-          <span class="role-edit-status" id="roleEditStatus">캐릭터를 고르고 아래 유효옵을 바꾼 뒤 [이 캐릭터 저장]을 누르세요.</span>
-          <button type="button" id="roleEditSave">이 캐릭터 저장</button>
-          <button type="button" id="roleEditWrite" class="is-primary">presets.js에 쓰기</button>
-        </div>
       </div>
 
       <div class="filter-section">
@@ -113,7 +106,7 @@
         <div id="dashboardList"></div>
       </div>
 
-      <!-- 공명자 선택 시안: 고른 캐릭터 일러스트 -->
+      <!-- 공명자 선택: 고른 캐릭터 일러스트 -->
       <div class="role-showcase" id="roleShowcase" hidden>
         <img id="roleShowcaseImg" alt="">
         <div class="role-showcase-info">
@@ -211,7 +204,7 @@
 
   <!-- 같은 경로에 있는 app.js 연결 -->
   <script type="module" src="./app.js"></script>
-  <!-- 전체 공명자 창 (시안) -->
+  <!-- 전체 공명자 창 -->
   <div class="role-modal" id="roleModal" role="dialog" aria-modal="true" aria-labelledby="roleModalTitle">
     <div class="role-modal-box">
       <div class="role-modal-head">

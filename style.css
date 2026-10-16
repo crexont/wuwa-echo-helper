@@ -314,11 +314,10 @@ body.ov-body { padding: 10px; margin: 0; background: var(--bg); font-size: 13px;
 .ov-editor select { width: 100%; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font-size: 12px; }
 .ov-editor-btns { display: flex; justify-content: flex-end; gap: 6px; }
 
-/* ───────── 공명자 선택 (시안) ───────── */
+/* ───────── 공명자 선택 ───────── */
 body.modal-lock { overflow: hidden; }
 
 .role-section { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
-.role-tag { margin-left: 4px; padding: 1px 6px; border-radius: 4px; background: var(--raised); color: var(--dim); font-size: 11px; font-weight: 600; vertical-align: 1px; }
 .role-note { color: var(--muted); font-size: 12px; text-align: right; }
 
 /* 전체 공명자 창 */
@@ -385,11 +384,12 @@ body.modal-lock { overflow: hidden; }
 .role-showcase-targets { color: var(--muted); font-size: 12px; }
 @media (max-width: 600px) { .role-note { display: none; } }
 
-/* 편집 모드 (?edit) */
-.role-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 9px 11px; border: 1px dashed var(--amber); border-radius: var(--radius); background: var(--amber-soft); font-size: 12px; }
-.role-edit[hidden] { display: none; }
-.role-edit strong { color: var(--amber); }
-.role-edit-status { flex: 1; min-width: 160px; color: var(--muted); }
-.role-edit button { padding: 6px 11px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
-.role-edit button:hover { border-color: var(--dim); }
-.role-edit button.is-primary { background: var(--cyan); border-color: var(--cyan); color: var(--cyan-ink); }
+
+/* 고른 공명자에 맞는 목표 강조: 딜러는 크크 목표, 서포터는 서포터 목표 (나머지는 흐리게) */
+#dashboardList[data-focus] .goal-card { transition: opacity 0.2s; }
+#dashboardList[data-focus="crit"] .goal-card:not([id^="goal-card-crit"]),
+#dashboardList[data-focus="free"] .goal-card:not([id^="goal-card-free"]) { opacity: 0.4; }
+#dashboardList[data-focus="crit"] [id^="goal-card-crit"] .goal-title::after,
+#dashboardList[data-focus="free"] [id^="goal-card-free"] .goal-title::after {
+  content: '추천'; display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; vertical-align: 1px;
+  background: color-mix(in srgb, var(--role-accent, var(--cyan)) 18%, transparent); color: var(--role-accent, var(--cyan)); font-size: 10.5px; font-weight: 700; }
