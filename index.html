@@ -56,9 +56,11 @@
         </div>
         <div class="filter-group" id="filterContainer"></div>
         <div class="threshold-row">
-          <span>GO 기준: 완성 확률이</span>
-          <input type="number" id="goThreshold" min="0" max="100" step="0.5" value="4">
-          <span>% 이상이면 GO</span>
+          <span>GO 판단 기준</span>
+          <select id="goMode" class="cutoff-select" title="튜너 아끼기: 완성 1개당 드는 튜너가 가장 적도록 판단 · 에코 아끼기: 완성이 불가능할 때만 STOP">
+            <option value="tuner" selected>튜너 아끼기</option>
+            <option value="echo">에코 아끼기</option>
+          </select>
         </div>
       </div>
 
@@ -104,6 +106,7 @@
           <button id="overlayBtn" class="btn-overlay" type="button" hidden title="게임 위에 항상 떠 있는 작은 판정 창 (크롬·엣지)">⧉ 오버레이</button>
         </div>
         <div id="dashboardList"></div>
+        <div class="cost-note" id="costNote"></div>
       </div>
 
       <!-- 공명자 선택: 고른 캐릭터 일러스트 -->
