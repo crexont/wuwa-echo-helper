@@ -57,7 +57,7 @@ const $ = (id) => pipWin.document.getElementById(id);
 
 /**
  * @param model {
- *   sharing, openedCount, goThreshold (0~100),
+ *   sharing, openedCount,
  *   slots: [{ key, val, name, icon(상대 경로), valText, tierLabel, tierClass, valid } | null] (5칸, null = 빈칸),
  *   goals: [{ title, status, probText, prob }]
  * }
@@ -67,7 +67,7 @@ export function updateOverlay(model) {
   if (getOverlayWindow()) renderOverlay(model);
 }
 
-function renderOverlay({ sharing, slots, openedCount, goals, goThreshold }) {
+function renderOverlay({ sharing, slots, openedCount, goals }) {
   if (!$('ov-slots')) return;
   $('ov-controls').innerHTML = `
     <button type="button" data-act="share" class="ov-btn ${sharing ? 'is-stop' : 'is-primary'}">${sharing ? '공유 중지' : '화면 공유 시작'}</button>
@@ -100,7 +100,7 @@ function renderOverlay({ sharing, slots, openedCount, goals, goThreshold }) {
         <span class="ov-goal-prob">${esc(g.probText)}</span>
         <span class="decision-badge badge-${g.status.toLowerCase()}">${{ WAIT: '대기', DONE: '성공', GO: 'GO', STOP: 'STOP' }[g.status]}</span>
       </div>
-      <div class="goal-bar"><span style="width:${(Math.min(1, Math.max(0, g.prob)) * 100).toFixed(1)}%"></span><i class="goal-th" style="left:${goThreshold}%"></i></div>
+      <div class="goal-bar"><span style="width:${(Math.min(1, Math.max(0, g.prob)) * 100).toFixed(1)}%"></span></div>
     </div>`).join('');
 }
 

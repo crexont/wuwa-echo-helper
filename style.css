@@ -143,7 +143,6 @@ video { display: block; position: fixed; left: -9999px; top: 0; width: 2px; heig
 /* 확률 막대 + GO 기준선 */
 .goal-bar { position: relative; height: 6px; margin-top: 8px; background: var(--raised); border-radius: 3px; }
 .goal-bar span { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--dim); transition: width 0.35s ease; }
-.goal-th { position: absolute; top: -4px; bottom: -4px; left: var(--go-th, 4%); width: 2px; border-radius: 1px; background: var(--muted); }
 
 .goal-card.is-go { border: 1px solid var(--cyan); background: linear-gradient(90deg, var(--cyan-soft), transparent 80%), var(--surface); }
 .goal-card.is-go .prob-num { color: var(--cyan); }
@@ -152,7 +151,6 @@ video { display: block; position: fixed; left: -9999px; top: 0; width: 2px; heig
 .goal-card.is-stop .goal-bar span { background: var(--amber); }
 .goal-card.is-done { border: 1px solid var(--muted); background: var(--surface); }
 .goal-card.is-done .goal-bar span { background: var(--text); }
-.goal-card.is-wait .goal-th { display: none; }
 
 .decision-badge { min-width: 64px; text-align: center; padding: 5px 12px; border-radius: 4px; font-family: var(--num); font-size: 13px; font-weight: 700; letter-spacing: 0.03em; }
 .badge-wait { color: var(--dim); box-shadow: inset 0 0 0 1px var(--line); }
@@ -393,3 +391,14 @@ body.modal-lock { overflow: hidden; }
 #dashboardList[data-focus="free"] [id^="goal-card-free"] .goal-title::after {
   content: '추천'; display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; vertical-align: 1px;
   background: color-mix(in srgb, var(--role-accent, var(--cyan)) 18%, transparent); color: var(--role-accent, var(--cyan)); font-size: 10.5px; font-weight: 700; }
+
+/* GO 판단 기준 (튜너 아끼기 / 에코 아끼기) */
+.threshold-row { flex-wrap: wrap; }
+.goal-prob { flex-wrap: wrap; row-gap: 2px; }
+.prob-sub { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: var(--dim); }
+.prob-sub .is-go { color: var(--cyan); }
+.prob-sub .is-stop { color: var(--amber); }
+.prob-sub em { font-style: normal; font-family: var(--num); }
+.prob-be { color: var(--dim); }
+.cost-note { color: var(--dim); font-size: 12px; }
+.cost-note:empty { display: none; }

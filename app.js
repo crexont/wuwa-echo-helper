@@ -4,7 +4,7 @@ import {
   STAT_DATABASE, DEFAULT_TARGETS, GOAL_PRESETS, CUT_SCORE,
   evaluateStepTier, tierPassProb, nearestStep, makeSlot,
 } from './data.js';
-import { goalSuccessProb, isGoalSatisfied } from './math.js';
+import { goalSuccessProb, isGoalSatisfied, breakEvenTuners, continueValue, discardLoss } from './math.js';
 import { SLOT_COUNT, SPLIT_X, clamp } from './config.js';
 import { initOcr, clearNameCache } from './ocr.js';
 import { initScanner, scanOnce, invalidateScan, forgetRow } from './scan.js';
@@ -43,7 +43,8 @@ const resetScanBtn = $('resetScanBtn');
 const ocrStatus = $('ocrStatus');
 const filterContainer = $('filterContainer');
 const minTierCutSelect = $('minTierCut');
-const goThresholdInput = $('goThreshold');
+const goModeSelect = $('goMode');
+const costNote = $('costNote');
 const frameCanvas = $('frameCanvas');
 const frameWrapper = $('frameWrapper');
 const framePlaceholder = $('framePlaceholder');
@@ -86,7 +87,7 @@ function saveSettings() {
       v: 3,
       targets: getSelectedTargets(),
       cut: minTierCutSelect.value,
-      goThreshold: getGoThreshold(),
+      mode: getGoMode(),
       box,
       viewMode,
     }));
@@ -100,8 +101,11 @@ function sanitizeBox(b) {
 function getSelectedTargets() {
   return Array.from(filterContainer.querySelectorAll('input:checked')).map((cb) => cb.value);
 }
-function getGoThreshold() {
-  return clamp(parseFloat(goThresholdInput.value) || 0, 0, 100);
+// GO/STOP 판단 기준: tuner = 튜너 아끼기(손익분기), echo = 에코 아끼기(완성이 불가능할 때만 STOP)
+// (예전 "완성 확률 기준"을 저장해 둔 사람은 튜너 아끼기로 바뀐다)
+const GO_MODES = ['tuner', 'echo'];
+function getGoMode() {
+  return GO_MODES.includes(goModeSelect.value) ? goModeSelect.value : 'tuner';
 }
 function onSettingsChanged() { runEvaluation(); saveSettings(); }
 
@@ -120,11 +124,10 @@ function initUI() {
   const savedTargets = Array.isArray(saved.targets) ? saved.targets.filter((k) => k in STAT_DATABASE) : null;
   const targets = savedTargets ?? DEFAULT_TARGETS;
   if (['low', 'mid', 'high'].includes(saved.cut)) minTierCutSelect.value = saved.cut;
-  // v3.0부터 GO 기준 기본값 5% → 4% (크크+1 최적 판단 기준). 예전 기본값 그대로인 사람만 새 기본값으로 바꾼다
-  if (Number.isFinite(saved.goThreshold)) goThresholdInput.value = saved.v === undefined && saved.goThreshold === 5 ? 4 : saved.goThreshold;
   const hasBox = Boolean(saved.box) && ['x', 'y', 'w', 'h'].every((k) => Number.isFinite(saved.box[k]));
   if (hasBox) box = sanitizeBox(saved.box);
   else adjusting = true;   // 처음 실행이면 영역부터 맞추도록 조정 화면으로 시작
+  if (GO_MODES.includes(saved.mode)) goModeSelect.value = saved.mode;
   if (saved.viewMode === 'full') viewMode = 'full';
   updateView();
   applyModeUI();
@@ -146,7 +149,7 @@ function initUI() {
       <div class="goal-title">${goal.title}</div>
       <div class="goal-main">
         <div class="goal-prob" id="prob-${goal.id}">대기 중</div>
-        <div class="goal-bar"><span id="bar-${goal.id}"></span><i class="goal-th"></i></div>
+        <div class="goal-bar"><span id="bar-${goal.id}"></span></div>
       </div>
       <div class="decision-badge badge-wait" id="badge-${goal.id}">대기</div>`;
     dashboardList.appendChild(card);
@@ -245,7 +248,6 @@ function syncOverlay({ openedCount, isValid }) {
   updateOverlay({
     sharing: Boolean(currentStream),
     openedCount,
-    goThreshold: getGoThreshold(),
     slots: lockedSlots.map((s) => (s ? {
       key: s.key, val: s.val, name: s.name, icon: iconUrl(s.key),
       valText: `+${s.val}${s.isPercent ? '%' : ''}`,
@@ -255,11 +257,42 @@ function syncOverlay({ openedCount, isValid }) {
   });
 }
 
+// 열린 옵션은 유효 여부와 상관없이 풀에서 빠진다. p = 뽑혔을 때 유효일 확률 (스탯별 실제 확률표 기반)
+function buildPool(opened, selectedTargets, cutScore) {
+  return Object.keys(STAT_DATABASE)
+    .filter((k) => !opened.has(k))
+    .map((k) => ({
+      key: k,
+      kind: k === '크확' ? 'critRate' : k === '크피' ? 'critDmg' : 'other',
+      p: selectedTargets.includes(k) ? tierPassProb(k, cutScore) : 0,
+    }));
+}
+
+// 완성 1개당 기대 튜너는 유효옵·수치 컷·목표에만 달려 있어서 설정이 바뀔 때만 다시 계산한다
+const breakEvenCache = new Map();
+function getBreakEven(goal, selectedTargets, cutScore) {
+  const key = `${goal.id}|${cutScore}|${[...selectedTargets].sort().join(',')}`;
+  if (!breakEvenCache.has(key)) breakEvenCache.set(key, breakEvenTuners(goal, buildPool(new Set(), selectedTargets, cutScore)));
+  return breakEvenCache.get(key);
+}
+
+const fmtGain = (g) => `${g >= 0 ? '+' : ''}${g.toFixed(1)}`;
+function decisionLine(d) {
+  const tag = (ok, label, extra = '') => `<span class="${ok ? 'is-go' : 'is-stop'}">${label} ${ok ? 'GO' : 'STOP'}${extra}</span>`;
+  return `<span class="prob-sub">${tag(d.tuner, '튜너 아끼기', ` <em>${fmtGain(d.gain)}</em>`)}${tag(d.echo, '에코 아끼기')}`
+    + `<span class="prob-be">완성 1개당 튜너 약 ${Math.round(d.lambda).toLocaleString()}개</span></span>`;
+}
+
+function updateCostNote(openedCount) {
+  if (!openedCount) { costNote.textContent = ''; return; }
+  const loss = discardLoss(openedCount);
+  costNote.textContent = `지금 버리면 잃는 양 (환급 후): 튜너 ${loss.tuners}개 · 경험치 ${loss.exp.toLocaleString()}`;
+}
+
 function evaluate() {
   const selectedTargets = getSelectedTargets();
   const cutScore = CUT_SCORE[minTierCutSelect.value];
-  const goThreshold = getGoThreshold() / 100;
-  dashboardList.style.setProperty('--go-th', `${getGoThreshold()}%`);   // 막대 위 GO 기준선
+  const mode = getGoMode();
 
   // 슬롯 위치를 유지한 채로 "열린 칸 수"를 센다 (중간 슬롯 인식 실패가 개수를 줄이지 않도록)
   let lastIdx = -1;
@@ -274,6 +307,7 @@ function evaluate() {
   const isValid = (s) => selectedTargets.includes(s.key) && s.tier.score >= cutScore;
 
   renderStatList(slots, isValid, keyCount, openedCount);
+  updateCostNote(openedCount);
   stableBufferText.textContent = `${lockedSlots.filter(Boolean).length}/${SLOT_COUNT}`;
   lastRenderSig = slotsSignature();
 
@@ -288,13 +322,7 @@ function evaluate() {
 
   const validKeys = slots.filter(isValid).map((s) => s.key);
   const opened = new Set(slots.map((s) => s.key));
-  const pool = Object.keys(STAT_DATABASE)
-    .filter((k) => !opened.has(k))                       // 열린 옵션은 유효 여부와 상관없이 풀에서 제외
-    .map((k) => ({
-      key: k,
-      kind: k === '크확' ? 'critRate' : k === '크피' ? 'critDmg' : 'other',
-      p: selectedTargets.includes(k) ? tierPassProb(k, cutScore) : 0,   // 스탯별 실제 확률표 기반
-    }));
+  const pool = buildPool(opened, selectedTargets, cutScore);
   const picks = SLOT_COUNT - openedCount;
   const critSelected = selectedTargets.includes('크확') && selectedTargets.includes('크피');
 
@@ -307,7 +335,11 @@ function evaluate() {
     if (isGoalSatisfied(base, goal)) { setGoalResult(goal.id, '<span class="prob-num">달성</span><span class="prob-label">목표 스펙 완성</span>', 'DONE'); return; }
     const prob = goalSuccessProb(goal, pool, picks, base);
     if (prob === 0) { setGoalResult(goal.id, '<span class="prob-num">0%</span><span class="prob-label">수학적 달성 불가</span>', 'STOP', 0); return; }
-    setGoalResult(goal.id, `<span class="prob-num">${(prob * 100).toFixed(2)}%</span><span class="prob-label">최종 완성 확률</span>`, prob >= goThreshold ? 'GO' : 'STOP', prob);
+    // 두 기준을 다 계산해 두고, 고른 기준으로 카드의 GO/STOP을 정한다
+    const lambda = getBreakEven(goal, selectedTargets, cutScore);
+    const gain = continueValue(goal, pool, picks, base, lambda);
+    const d = { tuner: gain > 0, echo: true, gain, lambda };
+    setGoalResult(goal.id, `<span class="prob-num">${(prob * 100).toFixed(2)}%</span><span class="prob-label">최종 완성 확률</span>${decisionLine(d)}`, d[mode] ? 'GO' : 'STOP', prob);
   });
   return { openedCount, isValid };
 }
@@ -586,7 +618,7 @@ adjustToggleBtn.addEventListener('click', () => setAdjusting(!adjusting));
 
 // ───────── 이벤트 리스너 ─────────
 minTierCutSelect.addEventListener('change', onSettingsChanged);
-goThresholdInput.addEventListener('input', onSettingsChanged);
+goModeSelect.addEventListener('change', onSettingsChanged);
 resetScanBtn.addEventListener('click', resetCurrentEcho);
 
 toggleTableBtn.addEventListener('click', () => {
