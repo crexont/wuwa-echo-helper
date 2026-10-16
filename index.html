@@ -37,6 +37,21 @@
         <button id="resetScanBtn" class="btn-reset">수동 초기화</button>
       </div>
 
+      <div class="role-section" id="roleSection">
+        <div class="filter-header">
+          <div class="filter-label">공명자 선택 <span class="role-tag">시안</span></div>
+          <span class="role-note" id="roleNote"></span>
+        </div>
+        <div class="role-strip" id="roleStrip"></div>
+        <!-- 주소 끝에 ?edit 를 붙이면 보인다: 캐릭터별 유효옵을 고쳐서 presets.js에 저장 -->
+        <div class="role-edit" id="roleEdit" hidden>
+          <strong>편집 모드</strong>
+          <span class="role-edit-status" id="roleEditStatus">캐릭터를 고르고 아래 유효옵을 바꾼 뒤 [이 캐릭터 저장]을 누르세요.</span>
+          <button type="button" id="roleEditSave">이 캐릭터 저장</button>
+          <button type="button" id="roleEditWrite" class="is-primary">presets.js에 쓰기</button>
+        </div>
+      </div>
+
       <div class="filter-section">
         <div class="filter-header">
           <div class="filter-label">유효옵 선택</div>
@@ -89,12 +104,24 @@
       <video id="gameVideo" autoplay playsinline></video>
     </div>
 
-    <div class="panel dashboard-panel">
-      <div class="dashboard-header">
-        <span>목표별 완성 확률</span>
-        <button id="overlayBtn" class="btn-overlay" type="button" hidden title="게임 위에 항상 떠 있는 작은 판정 창 (크롬·엣지)">⧉ 오버레이</button>
+    <div class="side-col">
+      <div class="panel dashboard-panel">
+        <div class="dashboard-header">
+          <span>목표별 완성 확률</span>
+          <button id="overlayBtn" class="btn-overlay" type="button" hidden title="게임 위에 항상 떠 있는 작은 판정 창 (크롬·엣지)">⧉ 오버레이</button>
+        </div>
+        <div id="dashboardList"></div>
       </div>
-      <div id="dashboardList"></div>
+
+      <!-- 공명자 선택 시안: 고른 캐릭터 일러스트 -->
+      <div class="role-showcase" id="roleShowcase" hidden>
+        <img id="roleShowcaseImg" alt="">
+        <div class="role-showcase-info">
+          <span class="role-showcase-el" id="roleShowcaseEl"></span>
+          <strong id="roleShowcaseName"></strong>
+          <span class="role-showcase-targets" id="roleShowcaseTargets"></span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -184,5 +211,21 @@
 
   <!-- 같은 경로에 있는 app.js 연결 -->
   <script type="module" src="./app.js"></script>
+  <!-- 전체 공명자 창 (시안) -->
+  <div class="role-modal" id="roleModal" role="dialog" aria-modal="true" aria-labelledby="roleModalTitle">
+    <div class="role-modal-box">
+      <div class="role-modal-head">
+        <h3 id="roleModalTitle">전체 공명자</h3>
+        <input type="search" id="roleSearch" class="role-search" placeholder="이름 검색" autocomplete="off">
+        <button type="button" id="roleModalClose" class="role-modal-x" aria-label="닫기">✕</button>
+      </div>
+      <div class="role-tabs" id="roleModalTabs"></div>
+      <div class="role-modal-grid" id="roleModalGrid"></div>
+      <div class="role-modal-foot">
+        <button type="button" id="roleClearBtn" class="role-clear">선택 안 함</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./roles.js"></script>
 </body>
 </html>
