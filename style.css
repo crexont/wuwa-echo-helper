@@ -342,6 +342,10 @@ body.modal-lock { overflow: hidden; }
 
 /* 오른쪽 칸: 목표 패널 + 고른 캐릭터 일러스트 카드 */
 .side-col { display: flex; flex-direction: column; gap: 16px; }
+/* PC 두 칸 화면: 스크롤해도 오른쪽 확률 표가 따라오게 (화면보다 길면 안에서 스크롤) */
+@media (min-width: 1001px) {
+  .side-col { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; scrollbar-width: thin; }
+}
 
 /* 속성 아이콘: 흰색 게임 아이콘을 모양(mask)으로 쓰고 속성 색을 칠한다 */
 .el-icon { display: inline-block; flex: none; width: 14px; height: 14px; background: var(--el); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--el) 60%, transparent)); }
