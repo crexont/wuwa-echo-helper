@@ -4,6 +4,7 @@
 // 메인 화면에는 고른 캐릭터 + 최근 고른 캐릭터만 보이고, 나머지는 [전체 공명자] 창에서 검색·속성별로 고른다.
 import { STAT_DATABASE } from './data.js';
 import { PRESETS } from './presets.js';
+import { THEME_COLORS } from './themes.js';
 
 const ROLE_KEY = 'echopago.role.v1';
 const RECENT_KEY = 'echopago.roleRecent.v1';
@@ -144,15 +145,55 @@ function setGoalFocus(role) {
   else delete list.dataset.focus;
 }
 
-// 공명자 테마: 고른 공명자를 <html data-role>에 달면 style.css가 색을 바꾼다.
-// 일러스트(img/theme/<id>.png)가 있는 공명자만 --art-full을 넣는다 (오버레이에서도 보이게 절대 주소)
-const THEMED = new Set(['aimisi']);
+// 공명자 테마: themes.js의 색 하나로 바탕 · 강조색 · 글자색을 만들어 <html>에 CSS 변수로 넣는다.
+// 일러스트 주소(--art-full)는 오버레이 창에서도 보이게 절대 주소. 새로고침 때 깜빡이지 않게 만든 값을 저장해 두고
+// index.html <head>가 그리기 전에 먼저 넣는다.
+const THEME_KEY = 'echopago.themeVars.v1';
+function hexToHsl(hex) {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = (mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60;
+  return [h, s, l];
+}
+function hslToRgb(h, s, l) {
+  const f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+  return [f(0), f(8), f(4)];
+}
+function themeVars(hex) {
+  const [h, s0, l0] = hexToHsl(hex);
+  // 회색 계열(설지 · 알토 · 산화 등)은 은색으로, 나머지는 색이 흐려도 강조색이 또렷하게
+  const gray = s0 < 0.15;
+  const s = gray ? 0.12 : Math.max(s0, 0.6);
+  const t = gray ? 0.35 : 1;   // 바탕에 물드는 정도
+  const c = (sat, l) => `rgb(${hslToRgb(h, sat, l).join(', ')})`;
+  const red = !gray && l0 < 0.55 && (h < 18 || h > 340);   // 진한 빨강은 밝게 올리면 살구색이 되므로 진하게 둔다
+  const accent = hslToRgb(h, red ? Math.max(s, 0.8) : Math.min(s, 0.95), gray ? 0.8 : red ? 0.58 : 0.72);
+  const panel = hslToRgb(h, 0.15 * t, 0.08);
+  return {
+    '--bg': c(0.16 * t, 0.05), '--panel': `rgb(${panel.join(', ')})`, '--panel-rgb': panel.join(', '),
+    '--surface': c(0.13 * t, 0.11), '--raised': c(0.12 * t, 0.15), '--line': c(0.15 * t, 0.2),
+    '--text': c(0.35 * t, 0.94), '--muted': c(0.12 * t, 0.7), '--dim': c(0.09 * t, 0.46),
+    '--cyan': `rgb(${accent.join(', ')})`, '--cyan-rgb': accent.join(', '),
+    '--cyan-light': c(Math.min(s, 0.9), 0.88), '--cyan-ink': c(gray ? 0.1 : 0.7, 0.1),
+  };
+}
 function setTheme(role) {
   const root = document.documentElement;
-  if (role) root.dataset.role = role.id;
-  else delete root.dataset.role;
-  if (role && THEMED.has(role.id)) root.style.setProperty('--art-full', `url("${new URL(`img/theme/${role.id}.png`, location.href).href}")`);
-  else root.style.removeProperty('--art-full');
+  for (const k of ['--bg', '--panel', '--panel-rgb', '--surface', '--raised', '--line', '--text', '--muted', '--dim',
+    '--cyan', '--cyan-rgb', '--cyan-light', '--cyan-ink', '--art-full']) root.style.removeProperty(k);
+  const color = role && THEME_COLORS[role.id];
+  if (color) {
+    root.dataset.themed = '';
+    const vars = themeVars(color);
+    vars['--art-full'] = `url("${new URL(`img/theme/${role.img ?? role.id}.webp`, location.href).href}")`;
+    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+    store.set(THEME_KEY, root.style.cssText);
+  } else {
+    delete root.dataset.themed;
+    store.set(THEME_KEY, null);
+  }
 }
 
 // 얼굴 타일: 정사각형 얼굴 + 아래 이름. 속성은 얼굴 오른쪽 아래 작은 아이콘과 밑줄 색으로 보여준다

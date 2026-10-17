@@ -12,7 +12,7 @@
   <!-- 같은 경로에 있는 style.css 연결 -->
   <link rel="stylesheet" href="./style.css">
   <!-- 고른 공명자 테마를 그리기 전에 먼저 적용 (깜빡임 방지) -->
-  <script>try { const r = localStorage.getItem('echopago.role.v1'); if (r) document.documentElement.dataset.role = r; } catch {}</script>
+  <script>try { const v = localStorage.getItem('echopago.themeVars.v1'); if (v) { document.documentElement.style.cssText = v; document.documentElement.dataset.themed = ''; } } catch {}</script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23222327%27/%3E%3Cg fill=%27%233ee6d6%27%3E%3Crect x=%277%27 y=%2713%27 width=%273%27 height=%276%27 rx=%271.5%27/%3E%3Crect x=%2712%27 y=%279%27 width=%273%27 height=%2714%27 rx=%271.5%27/%3E%3Crect x=%2717%27 y=%276%27 width=%273%27 height=%2720%27 rx=%271.5%27/%3E%3Crect x=%2722%27 y=%2711%27 width=%273%27 height=%2710%27 rx=%271.5%27/%3E%3C/g%3E%3C/svg%3E">
 </head>
 <body>

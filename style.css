@@ -23,28 +23,11 @@
   --radius: 8px;
 }
 
-/* 공명자 테마: 공명자를 고르면 <html data-role="id">가 붙는다 (roles.js). 지금은 에이메스만 있음 */
-/* 에이메스 — 블랙 + 핑크 (신호색 이름은 --cyan 그대로 두고 색만 바꾼다) */
-:root[data-role="aimisi"] {
-  --bg: #0d0a0e;
-  --panel: #161117;
-  --surface: #1f1820;
-  --raised: #2a2029;
-  --line: #3a2a37;
-  --text: #f6edf3;
-  --muted: #bba7b6;
-  --dim: #806b7c;
-
-  --cyan: #ff7eb6;
-  --cyan-rgb: 255, 126, 182;
-  --cyan-light: #ffc4dd;
-  --cyan-ink: #2b0716;
-  --amber: #ffc46b;
-  --amber-soft: rgba(255, 196, 107, 0.12);
-}
-/* 에이메스 일러스트: 그림 주소는 roles.js가 --art-full로 넣어준다 (오버레이에서도 깨지지 않게 절대 주소) */
+/* 공명자 테마: 공명자를 고르면 roles.js가 themes.js 색으로 바탕 · 강조색 변수를 <html>에 넣고 data-themed를 단다.
+   (신호색 이름은 --cyan 그대로 두고 색만 바뀐다. STOP 주황은 테마와 상관없이 그대로) */
+/* 일러스트: 그림 주소는 roles.js가 --art-full로 넣어준다 (오버레이에서도 깨지지 않게 절대 주소) */
 /* ① 화면 오른쪽에 크게 깔고, 패널은 살짝 비치게 해서 그림이 섞여 보이게 */
-:root[data-role="aimisi"] body::before {
+:root[data-themed] body::before {
   content: ''; position: fixed; right: -30px; bottom: 0; z-index: -1; pointer-events: none;
   width: min(48vw, 720px); height: min(96vh, 990px);
   background: var(--art-full) right bottom / contain no-repeat;
@@ -52,19 +35,19 @@
   -webkit-mask-image: linear-gradient(to left, #000 45%, transparent 98%);
   mask-image: linear-gradient(to left, #000 45%, transparent 98%);
 }
-:root[data-role="aimisi"] body::after {   /* 바탕에 은은한 핑크 빛 */
+:root[data-themed] body::after {   /* 바탕에 은은한 테마 색 빛 */
   content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background: radial-gradient(60% 70% at 85% 85%, rgba(var(--cyan-rgb), 0.16), transparent 70%),
               radial-gradient(40% 40% at 10% 0%, rgba(var(--cyan-rgb), 0.07), transparent 70%);
 }
-:root[data-role="aimisi"] .panel { background: rgba(22, 17, 23, 0.84); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
-@media (max-width: 1000px) { :root[data-role="aimisi"] body::before { opacity: 0.35; width: 90vw; } }
+:root[data-themed] .panel { background: rgba(var(--panel-rgb), 0.84); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+@media (max-width: 1000px) { :root[data-themed] body::before { opacity: 0.35; width: 90vw; } }
 
-:root[data-role="aimisi"] .app-header { background: linear-gradient(90deg, var(--panel) 40%, rgba(var(--cyan-rgb), 0.14)); }
+:root[data-themed] .app-header { background: linear-gradient(90deg, var(--panel) 40%, rgba(var(--cyan-rgb), 0.14)); }
 
 /* ② 오버레이 창 아래쪽에 살짝 */
-:root[data-role="aimisi"] body.ov-body::before { width: 260px; height: 360px; right: -40px; opacity: 0.22; }
-:root[data-role="aimisi"] body.ov-body::after { display: none; }
+:root[data-themed] body.ov-body::before { width: 260px; height: 360px; right: -40px; opacity: 0.22; }
+:root[data-themed] body.ov-body::after { display: none; }
 
 
 * { box-sizing: border-box; }

@@ -36,16 +36,16 @@ export async function openOverlay({ onClose, actions: acts = {}, statOptions: op
   }
   pipWin.document.title = '에코파고';
   pipWin.document.body.className = 'ov-body';
-  // 공명자 테마(data-role + 일러스트 주소)도 본 페이지를 따라간다. 열려 있는 동안 공명자를 바꿔도 바로 반영
+  // 공명자 테마(색 변수 · 일러스트 주소 · data-themed)도 본 페이지를 따라간다. 열려 있는 동안 공명자를 바꿔도 바로 반영
   const syncTheme = () => {
-    const r = document.documentElement.dataset.role;
-    pipWin.document.documentElement.style.cssText = document.documentElement.style.cssText;   // 일러스트 주소(--art-*)
-    if (r) pipWin.document.documentElement.dataset.role = r;
-    else delete pipWin.document.documentElement.dataset.role;
+    const src = document.documentElement, dst = pipWin.document.documentElement;
+    dst.style.cssText = src.style.cssText;
+    if ('themed' in src.dataset) dst.dataset.themed = '';
+    else delete dst.dataset.themed;
   };
   syncTheme();
   const themeWatch = new MutationObserver(syncTheme);
-  themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-role', 'style'] });
+  themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-themed', 'style'] });
   pipWin.addEventListener('pagehide', () => themeWatch.disconnect());
   // 칸마다 따로 그려서, 결과가 바뀌어도 편집 중인 입력칸은 그대로 둔다
   pipWin.document.body.innerHTML = `
