@@ -11,7 +11,9 @@
   --dim: #74767e;
 
   --cyan: #3ee6d6;            /* 신호색: GO · 상옵 · 확정 */
-  --cyan-soft: rgba(62, 230, 214, 0.12);
+  --cyan-rgb: 62, 230, 214;
+  --cyan-soft: rgba(var(--cyan-rgb), 0.12);
+  --cyan-light: #a9efe8;
   --cyan-ink: #04191c;        /* 청록 위 글자 */
   --amber: #ffb547;           /* 경고: STOP · 인식 실패 */
   --amber-soft: rgba(255, 181, 71, 0.12);
@@ -20,6 +22,70 @@
   --num: 'Chakra Petch', 'IBM Plex Sans KR', sans-serif;
   --radius: 8px;
 }
+
+/* 에이메스 테마 — 블랙 + 핑크 (신호색 이름은 --cyan 그대로 두고 색만 바꾼다) */
+:root[data-theme="aemeath"] {
+  --bg: #0d0a0e;
+  --panel: #161117;
+  --surface: #1f1820;
+  --raised: #2a2029;
+  --line: #3a2a37;
+  --text: #f6edf3;
+  --muted: #bba7b6;
+  --dim: #806b7c;
+
+  --cyan: #ff7eb6;
+  --cyan-rgb: 255, 126, 182;
+  --cyan-light: #ffc4dd;
+  --cyan-ink: #2b0716;
+  --amber: #ffc46b;
+  --amber-soft: rgba(255, 196, 107, 0.12);
+}
+/* 에이메스 일러스트: 그림 주소는 theme.js가 --art-full / --art-head로 넣어준다 (오버레이에서도 깨지지 않게 절대 주소) */
+/* ① 화면 오른쪽 아래에 크게 깔고, 패널은 살짝 비치게 해서 그림이 섞여 보이게 */
+:root[data-theme="aemeath"] body::before {
+  content: ''; position: fixed; right: -30px; bottom: 0; z-index: -1; pointer-events: none;
+  width: min(48vw, 720px); height: min(96vh, 990px);
+  background: var(--art-full) right bottom / contain no-repeat;
+  opacity: 0.6;
+  -webkit-mask-image: linear-gradient(to left, #000 45%, transparent 98%);
+  mask-image: linear-gradient(to left, #000 45%, transparent 98%);
+}
+:root[data-theme="aemeath"] body::after {   /* 바탕에 은은한 핑크 빛 */
+  content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background: radial-gradient(60% 70% at 85% 85%, rgba(var(--cyan-rgb), 0.16), transparent 70%),
+              radial-gradient(40% 40% at 10% 0%, rgba(var(--cyan-rgb), 0.07), transparent 70%);
+}
+:root[data-theme="aemeath"] .panel { background: rgba(22, 17, 23, 0.84); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+@media (max-width: 1000px) { :root[data-theme="aemeath"] body::before { opacity: 0.35; width: 90vw; } }
+
+/* ② 제목 줄에 얼굴 배너 */
+:root[data-theme="aemeath"] .app-header { position: relative; overflow: hidden; min-height: 96px; background: linear-gradient(90deg, var(--panel) 40%, rgba(var(--cyan-rgb), 0.14)); }
+:root[data-theme="aemeath"] .app-header::after {
+  content: ''; position: absolute; top: 0; bottom: 0; right: clamp(220px, 22vw, 420px); width: 420px; pointer-events: none;
+  background: var(--art-head) center 38% / cover no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+}
+:root[data-theme="aemeath"] .app-header > * { position: relative; z-index: 1; }
+@media (max-width: 900px) { :root[data-theme="aemeath"] .app-header::after { right: -60px; width: 300px; opacity: 0.45; } }
+
+/* ③ 화면 공유 전 빈 화면에도 에이메스 */
+:root[data-theme="aemeath"] .frame-wrapper:has(.placeholder-guide:not([style*="none"])) {
+  background: radial-gradient(closest-side, rgba(20, 16, 21, 0.9), rgba(20, 16, 21, 0.55)), var(--art-head) center 40% / cover no-repeat, #141015;
+}
+:root[data-theme="aemeath"] .placeholder-guide { color: var(--muted); text-shadow: 0 1px 3px #000, 0 0 12px #000; }
+
+/* ④ 오버레이 창 아래쪽에 살짝 */
+:root[data-theme="aemeath"] body.ov-body::before { width: 260px; height: 360px; right: -40px; opacity: 0.22; }
+:root[data-theme="aemeath"] body.ov-body::after { display: none; }
+
+/* 테마 고르기 (제목 줄 오른쪽) */
+.header-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.theme-switch { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.theme-switch button { border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+.theme-switch button:hover { color: var(--text); }
+.theme-switch button[aria-pressed="true"] { background: var(--cyan); color: var(--cyan-ink); }
 
 * { box-sizing: border-box; }
 body {
@@ -181,11 +247,11 @@ table.prob-grid td.label-col { padding-left: 12px; text-align: left; background:
 table.prob-grid tr:first-child th { background: var(--bg); color: var(--muted); font-size: 11.5px; font-weight: 500; }
 table.prob-grid tr:first-child th.c-lowest { box-shadow: inset 0 -3px 0 var(--raised); }
 table.prob-grid tr:first-child th.c-low    { box-shadow: inset 0 -3px 0 var(--dim); }
-table.prob-grid tr:first-child th.c-mid    { box-shadow: inset 0 -3px 0 rgba(62, 230, 214, 0.45); }
+table.prob-grid tr:first-child th.c-mid    { box-shadow: inset 0 -3px 0 rgba(var(--cyan-rgb), 0.45); }
 table.prob-grid tr:first-child th.c-high   { box-shadow: inset 0 -3px 0 var(--cyan); }
 /* 수치 행: 등급 = 청록의 진하기 */
-td.c-high   { background: rgba(62, 230, 214, 0.2); color: var(--cyan); font-weight: 700; }
-td.c-mid    { background: rgba(62, 230, 214, 0.07); color: #a9efe8; font-weight: 600; }
+td.c-high   { background: rgba(var(--cyan-rgb), 0.2); color: var(--cyan); font-weight: 700; }
+td.c-mid    { background: rgba(var(--cyan-rgb), 0.07); color: var(--cyan-light); font-weight: 600; }
 td.c-low    { color: var(--text); }
 td.c-lowest { color: var(--dim); }
 
@@ -361,7 +427,7 @@ body.modal-lock { overflow: hidden; }
 .role-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
 .role-tile:hover .role-face { border-color: var(--dim); }
 .role-tile:hover { color: var(--text); }
-.role-tile.is-on .role-face { border-color: var(--cyan); box-shadow: inset 0 -3px 0 var(--el), 0 0 0 2px var(--cyan-soft), 0 0 12px rgba(62, 230, 214, 0.25); }
+.role-tile.is-on .role-face { border-color: var(--cyan); box-shadow: inset 0 -3px 0 var(--el), 0 0 0 2px var(--cyan-soft), 0 0 12px rgba(var(--cyan-rgb), 0.25); }
 .role-tile.is-on .role-label { color: var(--cyan); }
 .role-more .role-face { display: flex; align-items: center; justify-content: center; border-style: dashed; box-shadow: none; background: transparent; }
 .role-more-mark { color: var(--dim); font-size: 22px; line-height: 1; }
