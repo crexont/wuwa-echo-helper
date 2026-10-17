@@ -11,7 +11,7 @@
 &nbsp;
 ![version](https://img.shields.io/badge/version-v4.0-222327?style=for-the-badge)
 
-<img src="docs/screenshot-main.png" alt="에코파고 메인 화면" width="860">
+<img src="docs/screenshot-main-v4.0.png" alt="에코파고 메인 화면" width="860">
 
 </div>
 
@@ -39,7 +39,7 @@
 6. 게임 위에 띄워 두고 싶으면 **⧉ 오버레이**를 눌러요. (크롬·엣지 PC)
 
 <div align="center">
-  <img src="docs/screenshot-overlay.png" alt="오버레이 창" width="320"><br>
+  <img src="docs/screenshot-overlay-v4.0.png" alt="오버레이 창" width="320"><br>
   <sub>오버레이 창: 게임 위에 띄워 두고 부옵션과 확률을 바로 확인</sub>
 </div>
 
