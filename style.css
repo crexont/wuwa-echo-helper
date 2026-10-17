@@ -51,6 +51,7 @@ body.is-live .wave i:nth-child(5) { animation-delay: 0.48s; }
 
 /* ───────── 레이아웃 ───────── */
 .layout-container { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; max-width: 1350px; margin: 0 auto; padding: 0 20px; align-items: start; }
+.layout-container > * { min-width: 0; }
 @media (max-width: 1000px) { .layout-container { grid-template-columns: 1fr; } }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
 
