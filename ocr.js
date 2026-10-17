@@ -1,4 +1,4 @@
-// ocr.js — 명조 에코파고 v3.0: 한 줄(옵션명 + 수치)을 읽는 부분
+// ocr.js — 명조 에코파고 v4.0: 한 줄(옵션명 + 수치)을 읽는 부분
 // 이미지 전처리 → 글자 그림 기억(지문) 확인 → 필요한 쪽만 Tesseract OCR → 옵션/수치 판정
 import { SLOT_COUNT, SPLIT_X, DEBUG, clamp } from './config.js';
 import { STAT_DATABASE, matchStat, isLockedRow, nameSimilarity } from './data.js';
