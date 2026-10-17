@@ -406,3 +406,7 @@ body.modal-lock { overflow: hidden; }
 /* 오버레이: 고른 공명자에 맞는 목표 강조 */
 .ov-goal.is-dim { opacity: 0.4; }
 .ov-rec { display: inline-block; margin-left: 5px; padding: 0 5px; border-radius: 4px; vertical-align: 1px; background: var(--cyan-soft); color: var(--cyan); font-size: 10px; font-weight: 700; }
+.ov-decision { display: flex; gap: 6px; margin-top: 5px; font-size: 11px; font-family: var(--num); color: var(--dim); }
+.ov-decision .is-go { color: var(--cyan); }
+.ov-decision .is-stop { color: var(--amber); }
+.ov-decision i { font-style: normal; color: var(--dim); }
