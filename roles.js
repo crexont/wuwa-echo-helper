@@ -93,7 +93,6 @@ export const ROLES = [
 const findRole = (id) => ROLES.find((r) => r.id === id) || null;
 const targetsOf = (role) => PRESETS[role.id] ?? FALLBACK_TARGETS;
 
-const bigUrl = (role) => `./img/roles/big/${role.id}.jpg`;    // 오른쪽 일러스트 카드용 (속성 색 배경이 들어가 있어서 방랑자도 속성마다 따로)
 const faceUrl = (role) => `./img/roles/face/${role.img ?? role.id}.jpg`;  // 얼굴 타일용 (게임 얼굴 아이콘)
 
 const $ = (id) => document.getElementById(id);
@@ -105,7 +104,7 @@ const modal = $('roleModal');
 const modalGrid = $('roleModalGrid');
 const modalTabs = $('roleModalTabs');
 const searchInput = $('roleSearch');
-const showcase = $('roleShowcase');
+const roleTargets = $('roleTargets');
 
 let currentId = null;
 let applying = false;   // 우리가 체크박스를 바꾸는 중에는 "직접 수정" 표시를 하지 않는다
@@ -124,16 +123,13 @@ function pushRecent(id) {
   store.set(RECENT_KEY, JSON.stringify(list));
 }
 
-// ───────── 오른쪽 일러스트 카드 ─────────
-function showShowcase(role) {
-  showcase.hidden = !role;
+// ───────── 추천 유효옵 줄 (얼굴 줄 바로 아래) ─────────
+function showTargets(role) {
+  roleTargets.hidden = !role;
   if (!role) return;
-  showcase.style.setProperty('--el', elementColor(role.elements[0]));
-  $('roleShowcaseImg').src = bigUrl(role);
-  $('roleShowcaseName').textContent = role.name;
-  $('roleShowcaseEl').innerHTML = role.elements.map((e) => `${elementIcon(e)}${e}`).join(' ');
   const names = targetsOf(role).map((k) => STAT_DATABASE[k]?.name ?? k);
-  $('roleShowcaseTargets').textContent = `추천 유효옵${PRESETS[role.id] ? '' : '(기본값)'}: ${names.join(' · ')}`;
+  roleTargets.innerHTML = `${elementIcons(role)}<strong>${role.name}</strong> 추천 유효옵${PRESETS[role.id] ? '' : '(기본값)'}: <span>${names.join(' · ')}</span>`;
+  roleTargets.style.setProperty('--el', elementColor(role.elements[0]));
 }
 
 function setNote(text) { roleNote.textContent = text; }
@@ -263,7 +259,7 @@ function selectRole(id) {
   currentId = role ? role.id : null;
   store.set(ROLE_KEY, currentId);
   if (role) pushRecent(role.id);
-  showShowcase(role);
+  showTargets(role);
   setGoalFocus(role);
   renderStrip();
   if (role) {
@@ -276,12 +272,12 @@ function selectRole(id) {
 }
 
 function init() {
-  if (!section || !strip || !filterContainer || !modal || !showcase) return;
+  if (!section || !strip || !filterContainer || !modal || !roleTargets) return;
 
   // 새로고침했을 때는 화면만 복원한다 (유효옵은 app.js가 저장해 둔 값을 그대로 쓴다)
   const saved = findRole(store.get(ROLE_KEY));
   currentId = saved ? saved.id : null;
-  showShowcase(saved);
+  showTargets(saved);
   setGoalFocus(saved);
   if (saved) notifyApp();   // app.js는 roles.js보다 먼저 계산하므로, 강조 상태를 오버레이에도 알려준다
   renderStrip();

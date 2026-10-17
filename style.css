@@ -370,16 +370,7 @@ body.modal-lock { overflow: hidden; }
 .role-group-grid { display: grid; grid-template-columns: repeat(auto-fill, 68px); gap: 12px 10px; }
 .role-empty { padding: 40px 0; color: var(--dim); text-align: center; }
 
-/* 오른쪽 일러스트 카드: 그림 전체가 보이게 넣고, 정보는 그림 아래에 둔다 */
-.role-showcase { --el: var(--dim); display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; border: 1px solid var(--line); border-top: 2px solid var(--el); background: var(--panel); }
-.role-showcase[hidden] { display: none; }
-.role-showcase img { display: block; width: 100%; aspect-ratio: 696 / 960; max-height: 70vh; object-fit: contain;
   background: radial-gradient(90% 60% at 50% 35%, color-mix(in srgb, var(--el) 22%, #111215), #0b0b0d 80%); }
-.role-showcase-info { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
-.role-showcase-info strong { font-size: 20px; font-weight: 700; }
-.role-showcase-el { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; color: var(--el); font-size: 12px; font-weight: 700; }
-.role-showcase-el .el-icon { width: 15px; height: 15px; }
-.role-showcase-targets { color: var(--muted); font-size: 12px; }
 @media (max-width: 600px) { .role-note { display: none; } }
 
 
@@ -410,3 +401,10 @@ body.modal-lock { overflow: hidden; }
 .ov-decision .is-go { color: var(--cyan); }
 .ov-decision .is-stop { color: var(--amber); }
 .ov-decision i { font-style: normal; color: var(--dim); }
+
+/* 고른 공명자의 추천 유효옵 (얼굴 줄 아래) */
+.role-targets { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding-top: 2px; color: var(--muted); font-size: 12px; }
+.role-targets[hidden] { display: none; }
+.role-targets strong { color: var(--text); }
+.role-targets span { color: var(--text); }
+.role-targets .el-icon { width: 13px; height: 13px; }
