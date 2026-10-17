@@ -36,6 +36,17 @@ export async function openOverlay({ onClose, actions: acts = {}, statOptions: op
   }
   pipWin.document.title = '에코파고';
   pipWin.document.body.className = 'ov-body';
+  // 테마(기본 / 에이메스)도 본 페이지를 따라간다. 열려 있는 동안 바꿔도 바로 반영
+  const syncTheme = () => {
+    const t = document.documentElement.dataset.theme;
+    pipWin.document.documentElement.style.cssText = document.documentElement.style.cssText;   // 일러스트 주소(--art-*)
+    if (t) pipWin.document.documentElement.dataset.theme = t;
+    else delete pipWin.document.documentElement.dataset.theme;
+  };
+  syncTheme();
+  const themeWatch = new MutationObserver(syncTheme);
+  themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  pipWin.addEventListener('pagehide', () => themeWatch.disconnect());
   // 칸마다 따로 그려서, 결과가 바뀌어도 편집 중인 입력칸은 그대로 둔다
   pipWin.document.body.innerHTML = `
     <div id="ov-controls" class="ov-controls"></div>
