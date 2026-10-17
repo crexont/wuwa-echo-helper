@@ -180,9 +180,11 @@ function buildBase(goal, validKeys) {
 
 // prob: 0~1 (막대 길이). 숫자가 없는 상태(대기/달성)는 null
 const goalResults = {};   // 오버레이에 보낼 목표별 결과
-function setGoalResult(id, html, status, prob = null) {
+// d = 두 판단 결과 { tuner, echo, gain } (계산이 된 경우만) → 오버레이에도 같이 보낸다
+function setGoalResult(id, html, status, prob = null, d = null) {
   goalResults[id] = {
     status,
+    decision: d ? { tuner: d.tuner, echo: d.echo, gain: d.gain } : null,
     prob: status === 'DONE' ? 1 : prob ?? 0,
     probText: status === 'WAIT' ? '—' : status === 'DONE' ? '달성' : `${((prob ?? 0) * 100).toFixed(2)}%`,
   };
@@ -340,7 +342,7 @@ function evaluate() {
     const lambda = getBreakEven(goal, selectedTargets, cutScore);
     const gain = continueValue(goal, pool, picks, base, lambda);
     const d = { tuner: gain > 0, echo: true, gain, lambda };
-    setGoalResult(goal.id, `<span class="prob-num">${(prob * 100).toFixed(2)}%</span><span class="prob-label">최종 완성 확률</span>${decisionLine(d)}`, d[mode] ? 'GO' : 'STOP', prob);
+    setGoalResult(goal.id, `<span class="prob-num">${(prob * 100).toFixed(2)}%</span><span class="prob-label">최종 완성 확률</span>${decisionLine(d)}`, d[mode] ? 'GO' : 'STOP', prob, d);
   });
   return { openedCount, isValid };
 }

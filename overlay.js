@@ -59,7 +59,7 @@ const $ = (id) => pipWin.document.getElementById(id);
  * @param model {
  *   sharing, openedCount,
  *   slots: [{ key, val, name, icon(상대 경로), valText, tierLabel, tierClass, valid } | null] (5칸, null = 빈칸),
- *   goals: [{ id, title, status, probText, prob }],
+ *   goals: [{ id, title, status, probText, prob, decision: { tuner, echo, gain } | null }],
  *   focus: 'crit'(딜러: 크크 목표 추천) | 'free'(서포터: 서포터 목표 추천) | null
  * }
  */
@@ -106,8 +106,17 @@ function renderOverlay({ sharing, slots, openedCount, goals, focus }) {
         <span class="decision-badge badge-${g.status.toLowerCase()}">${{ WAIT: '대기', DONE: '성공', GO: 'GO', STOP: 'STOP' }[g.status]}</span>
       </div>
       <div class="goal-bar"><span style="width:${(Math.min(1, Math.max(0, g.prob)) * 100).toFixed(1)}%"></span></div>
+      ${decisionLine(g.decision)}
     </div>`;
   }).join('');
+}
+
+// 두 판단(튜너 아끼기 · 에코 아끼기)을 짧게 한 줄로. 본 화면 카드의 아래 줄과 같은 내용
+function decisionLine(d) {
+  if (!d) return '';
+  const tag = (ok, label, extra = '') => `<span class="${ok ? 'is-go' : 'is-stop'}">${label} ${ok ? 'GO' : 'STOP'}${extra}</span>`;
+  const gain = Number.isFinite(d.gain) ? ` ${d.gain >= 0 ? '+' : ''}${d.gain.toFixed(1)}` : '';
+  return `<div class="ov-decision" title="튜너 아끼기 · 에코 아끼기 판정">${tag(d.tuner, '튜너', gain)}<i>·</i>${tag(d.echo, '에코')}</div>`;
 }
 
 // 편집 칸: 옵션 종류 / 수치 선택 + 적용·삭제·취소
