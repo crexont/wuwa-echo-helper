@@ -253,7 +253,8 @@ function syncOverlay({ openedCount, isValid }) {
       valText: `+${s.val}${s.isPercent ? '%' : ''}`,
       tierLabel: s.tier.label, tierClass: s.tier.class, valid: isValid(s),
     } : null)),
-    goals: GOAL_PRESETS.map((g) => ({ title: g.title, ...(goalResults[g.id] || { status: 'WAIT', prob: 0, probText: '—' }) })),
+    goals: GOAL_PRESETS.map((g) => ({ id: g.id, title: g.title, ...(goalResults[g.id] || { status: 'WAIT', prob: 0, probText: '—' }) })),
+    focus: dashboardList.dataset.focus || null,   // roles.js가 정한 강조: crit(딜러) / free(서포터)
   });
 }
 

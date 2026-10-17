@@ -402,3 +402,7 @@ body.modal-lock { overflow: hidden; }
 .prob-be { color: var(--dim); }
 .cost-note { color: var(--dim); font-size: 12px; }
 .cost-note:empty { display: none; }
+
+/* 오버레이: 고른 공명자에 맞는 목표 강조 */
+.ov-goal.is-dim { opacity: 0.4; }
+.ov-rec { display: inline-block; margin-left: 5px; padding: 0 5px; border-radius: 4px; vertical-align: 1px; background: var(--cyan-soft); color: var(--cyan); font-size: 10px; font-weight: 700; }

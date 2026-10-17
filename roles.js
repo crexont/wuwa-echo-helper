@@ -240,6 +240,15 @@ function closeModal() {
 
 // ───────── 선택 ─────────
 // 유효옵 체크박스를 캐릭터 프리셋대로 바꾸고, change 이벤트 한 번으로 app.js에 알린다
+// 유효옵은 그대로 두고 app.js에 다시 계산만 시킨다 (오버레이의 목표 강조도 같이 갱신된다)
+function notifyApp() {
+  const first = filterContainer.querySelector('input[type="checkbox"]');
+  if (!first) return;
+  applying = true;
+  first.dispatchEvent(new Event('change', { bubbles: true }));
+  applying = false;
+}
+
 function applyTargets(targets) {
   const inputs = [...filterContainer.querySelectorAll('input[type="checkbox"]')];
   if (!inputs.length) return;
@@ -262,6 +271,7 @@ function selectRole(id) {
     setNote(`${role.name} 추천 유효옵으로 바꿨어요. 아래에서 더 고칠 수 있어요.`);
   } else {
     setNote('캐릭터를 고르면 유효옵이 자동으로 맞춰져요.');
+    notifyApp();
   }
 }
 
@@ -273,6 +283,7 @@ function init() {
   currentId = saved ? saved.id : null;
   showShowcase(saved);
   setGoalFocus(saved);
+  if (saved) notifyApp();   // app.js는 roles.js보다 먼저 계산하므로, 강조 상태를 오버레이에도 알려준다
   renderStrip();
   setNote(saved ? `${saved.name} 선택 중` : '캐릭터를 고르면 유효옵이 자동으로 맞춰져요.');
 

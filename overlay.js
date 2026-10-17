@@ -59,7 +59,8 @@ const $ = (id) => pipWin.document.getElementById(id);
  * @param model {
  *   sharing, openedCount,
  *   slots: [{ key, val, name, icon(상대 경로), valText, tierLabel, tierClass, valid } | null] (5칸, null = 빈칸),
- *   goals: [{ title, status, probText, prob }]
+ *   goals: [{ id, title, status, probText, prob }],
+ *   focus: 'crit'(딜러: 크크 목표 추천) | 'free'(서포터: 서포터 목표 추천) | null
  * }
  */
 export function updateOverlay(model) {
@@ -67,7 +68,7 @@ export function updateOverlay(model) {
   if (getOverlayWindow()) renderOverlay(model);
 }
 
-function renderOverlay({ sharing, slots, openedCount, goals }) {
+function renderOverlay({ sharing, slots, openedCount, goals, focus }) {
   if (!$('ov-slots')) return;
   $('ov-controls').innerHTML = `
     <button type="button" data-act="share" class="ov-btn ${sharing ? 'is-stop' : 'is-primary'}">${sharing ? '공유 중지' : '화면 공유 시작'}</button>
@@ -93,15 +94,20 @@ function renderOverlay({ sharing, slots, openedCount, goals }) {
     </div>`;
   }).join('');
 
-  $('ov-goals').innerHTML = '<div class="ov-head"><span>목표별 완성 확률</span></div>' + goals.map((g) => `
-    <div class="ov-goal is-${g.status.toLowerCase()}">
+  // 고른 공명자에 맞는 목표는 "추천", 나머지는 흐리게 (본 화면과 같은 기준)
+  const kindOf = (id) => (String(id).startsWith('crit') ? 'crit' : 'free');
+  $('ov-goals').innerHTML = '<div class="ov-head"><span>목표별 완성 확률</span></div>' + goals.map((g) => {
+    const rec = focus && kindOf(g.id) === focus;
+    return `
+    <div class="ov-goal is-${g.status.toLowerCase()}${focus && !rec ? ' is-dim' : ''}">
       <div class="ov-goal-top">
-        <span class="ov-goal-title">${esc(g.title)}</span>
+        <span class="ov-goal-title">${esc(g.title)}${rec ? '<span class="ov-rec">추천</span>' : ''}</span>
         <span class="ov-goal-prob">${esc(g.probText)}</span>
         <span class="decision-badge badge-${g.status.toLowerCase()}">${{ WAIT: '대기', DONE: '성공', GO: 'GO', STOP: 'STOP' }[g.status]}</span>
       </div>
       <div class="goal-bar"><span style="width:${(Math.min(1, Math.max(0, g.prob)) * 100).toFixed(1)}%"></span></div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // 편집 칸: 옵션 종류 / 수치 선택 + 적용·삭제·취소
