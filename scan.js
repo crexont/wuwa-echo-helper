@@ -1,4 +1,4 @@
-// scan.js — 명조 에코파고 v3.0: 어느 줄을 언제 읽을지 정하는 부분
+// scan.js — 명조 에코파고 v4.0: 어느 줄을 언제 읽을지 정하는 부분
 // 줄별 화면 변화 감지, 강화 연출(어두워짐) 대기, 읽는 순서(새로 열린 줄 우선), 오인식 보정
 import { SLOT_COUNT, DEBUG } from './config.js';
 import { readSlot, resetBlankCounts } from './ocr.js';
