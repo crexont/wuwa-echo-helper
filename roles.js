@@ -144,6 +144,17 @@ function setGoalFocus(role) {
   else delete list.dataset.focus;
 }
 
+// 공명자 테마: 고른 공명자를 <html data-role>에 달면 style.css가 색을 바꾼다.
+// 일러스트(img/theme/<id>.png)가 있는 공명자만 --art-full을 넣는다 (오버레이에서도 보이게 절대 주소)
+const THEMED = new Set(['aimisi']);
+function setTheme(role) {
+  const root = document.documentElement;
+  if (role) root.dataset.role = role.id;
+  else delete root.dataset.role;
+  if (role && THEMED.has(role.id)) root.style.setProperty('--art-full', `url("${new URL(`img/theme/${role.id}.png`, location.href).href}")`);
+  else root.style.removeProperty('--art-full');
+}
+
 // 얼굴 타일: 정사각형 얼굴 + 아래 이름. 속성은 얼굴 오른쪽 아래 작은 아이콘과 밑줄 색으로 보여준다
 function buildTile(role) {
   const btn = document.createElement('button');
@@ -261,6 +272,7 @@ function selectRole(id) {
   if (role) pushRecent(role.id);
   showTargets(role);
   setGoalFocus(role);
+  setTheme(role);
   renderStrip();
   if (role) {
     applyTargets(targetsOf(role));
@@ -279,6 +291,7 @@ function init() {
   currentId = saved ? saved.id : null;
   showTargets(saved);
   setGoalFocus(saved);
+  setTheme(saved);
   if (saved) notifyApp();   // app.js는 roles.js보다 먼저 계산하므로, 강조 상태를 오버레이에도 알려준다
   renderStrip();
   setNote(saved ? `${saved.name} 선택 중` : '캐릭터를 고르면 유효옵이 자동으로 맞춰져요.');

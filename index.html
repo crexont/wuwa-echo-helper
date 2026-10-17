@@ -11,8 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- 같은 경로에 있는 style.css 연결 -->
   <link rel="stylesheet" href="./style.css">
-  <!-- 저장된 테마를 그리기 전에 먼저 적용 (깜빡임 방지) -->
-  <script>try { const t = localStorage.getItem('echopago.theme.v1'); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
+  <!-- 고른 공명자 테마를 그리기 전에 먼저 적용 (깜빡임 방지) -->
+  <script>try { const r = localStorage.getItem('echopago.role.v1'); if (r) document.documentElement.dataset.role = r; } catch {}</script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%23222327%27/%3E%3Cg fill=%27%233ee6d6%27%3E%3Crect x=%277%27 y=%2713%27 width=%273%27 height=%276%27 rx=%271.5%27/%3E%3Crect x=%2712%27 y=%279%27 width=%273%27 height=%2714%27 rx=%271.5%27/%3E%3Crect x=%2717%27 y=%276%27 width=%273%27 height=%2720%27 rx=%271.5%27/%3E%3Crect x=%2722%27 y=%2711%27 width=%273%27 height=%2710%27 rx=%271.5%27/%3E%3C/g%3E%3C/svg%3E">
 </head>
 <body>
@@ -23,13 +23,7 @@
       명조 에코파고
       <span class="badge-release">v4.0</span>
     </h2>
-    <div class="header-right">
-      <span class="app-sub">에코 부옵션 강화 시뮬레이터</span>
-      <div class="theme-switch" id="themeSwitch" role="group" aria-label="테마">
-        <button type="button" data-theme="">기본</button>
-        <button type="button" data-theme="aemeath">에이메스</button>
-      </div>
-    </div>
+    <span class="app-sub">에코 부옵션 강화 시뮬레이터</span>
   </header>
 
   <div class="layout-container">
@@ -222,6 +216,5 @@
     </div>
   </div>
   <script type="module" src="./roles.js"></script>
-  <script type="module" src="./theme.js"></script>
 </body>
 </html>
