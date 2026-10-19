@@ -404,7 +404,6 @@ body.modal-lock { overflow: hidden; }
 .role-group-grid { display: grid; grid-template-columns: repeat(auto-fill, 68px); gap: 12px 10px; }
 .role-empty { padding: 40px 0; color: var(--dim); text-align: center; }
 
-  background: radial-gradient(90% 60% at 50% 35%, color-mix(in srgb, var(--el) 22%, #111215), #0b0b0d 80%); }
 @media (max-width: 600px) { .role-note { display: none; } }
 
 
