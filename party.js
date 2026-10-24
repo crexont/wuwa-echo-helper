@@ -70,10 +70,14 @@ let editingOwned = !state.owned.length;
 let editingRole = null;
 
 // ───────── 탭 (에코파고 / 파티 메이커) ─────────
+// 사이트 이름은 "명조 툴즈", 에코파고와 파티 메이커는 그 안의 탭. 제목 옆 설명은 탭마다 바뀐다
+const SUBTITLE = { echo: '에코 부옵션 강화 시뮬레이터', party: '가진 캐릭터로 파티 짜고 한 장으로 캡처' };
 const tabs = $('appTabs');
 function showTab() {
   const tab = location.hash === '#party' ? 'party' : 'echo';
   document.body.dataset.tab = tab;
+  $('appSub').textContent = SUBTITLE[tab];
+  document.title = tab === 'party' ? '파티 메이커 — 명조 툴즈' : '에코파고 — 명조 툴즈';
   for (const a of tabs.querySelectorAll('[data-tab]')) a.setAttribute('aria-current', a.dataset.tab === tab ? 'page' : 'false');
   if (tab === 'party') renderCard();   // 에코파고에서 공명자(테마)를 바꿨을 수 있으니 카드 색을 다시 맞춘다
 }
@@ -584,7 +588,7 @@ async function drawCard() {
   g.fillStyle = css.dim;
   g.font = `500 11px ${FONT}`;
   g.textAlign = 'right';
-  g.fillText('명조 에코파고 · 파티 메이커  crexont.github.io/wuwa-echo-helper', W - PAD, H - PAD + 6);
+  g.fillText('명조 툴즈 · 파티 메이커  crexont.github.io/wuwa-echo-helper', W - PAD, H - PAD + 6);
   g.textAlign = 'left';
   return canvas;
 }
