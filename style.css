@@ -441,3 +441,127 @@ body.modal-lock { overflow: hidden; }
 .role-targets strong { color: var(--text); }
 .role-targets span { color: var(--text); }
 .role-targets .el-icon { width: 13px; height: 13px; }
+
+/* ───────── 메뉴 탭 (에코파고 / 파티 메이커) ───────── */
+.app-tabs { display: flex; gap: 4px; margin-right: auto; padding: 3px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+.app-tabs a { padding: 6px 14px; border-radius: 7px; color: var(--muted); font-size: 13.5px; font-weight: 600; text-decoration: none; }
+.app-tabs a:hover { color: var(--text); }
+.app-tabs a[aria-current="page"] { background: var(--cyan); color: var(--cyan-ink); }
+body[data-tab="party"] .layout-container,
+body[data-tab="party"] .table-section { display: none; }
+body:not([data-tab="party"]) .party-page { display: none; }
+
+/* ───────── 파티 메이커 ───────── */
+.party-page { display: flex; flex-direction: column; gap: 16px; max-width: 1350px; margin: 0 auto; padding: 0 20px; }
+.pm-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: start; }
+.pm-grid > * { min-width: 0; }
+@media (max-width: 1000px) { .pm-grid { grid-template-columns: 1fr; } }
+.pm-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.pm-head h3 { margin: 0; font-size: 15px; }
+.pm-head-btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pm-count { margin-left: 6px; padding: 1px 7px; border-radius: 4px; background: var(--cyan-soft); color: var(--cyan); font-family: var(--num); font-size: 12px; }
+.pm-hint { margin: 10px 0 12px; color: var(--muted); font-size: 12.5px; }
+.pm-btn { padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.pm-btn:hover:not(:disabled) { color: var(--text); border-color: var(--dim); }
+.pm-btn:disabled { opacity: 0.4; cursor: default; }
+.pm-btn-accent { border-color: var(--cyan); color: var(--cyan); }
+.pm-btn-accent:hover:not(:disabled) { background: var(--cyan-soft); color: var(--cyan); border-color: var(--cyan); }
+.pm-status { color: var(--cyan); font-size: 12.5px; }
+
+/* 얼굴 타일: 에코파고 타일 모양(.role-face)을 그대로 쓰고, 안 가진 캐릭터는 흐리게 */
+.pm-owned-grid { display: flex; flex-direction: column; gap: 14px; }
+.pm-owned-grid .role-group-head { margin: 0 0 8px; }
+.pm-tiles { display: grid; grid-template-columns: repeat(auto-fill, 64px); gap: 10px 8px; }
+.pm-tile { --el: var(--dim); position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 64px; padding: 0; border: none; background: none; color: var(--muted); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.pm-tile .role-face { width: 60px; height: 60px; }
+.pm-owned .pm-tile:not(.is-owned) .role-face { filter: grayscale(1) brightness(0.45); }
+.pm-owned .pm-tile:not(.is-owned) .role-label { color: var(--dim); }
+.pm-tile.is-owned .role-face { border-color: var(--cyan); box-shadow: inset 0 -3px 0 var(--el), 0 0 0 1px var(--cyan-soft); }
+.pm-tile.is-owned .role-label { color: var(--text); }
+.pm-tile:hover .role-face { border-color: var(--cyan); }
+.pm-tile.is-elsewhere .role-face { opacity: 0.55; }
+.pm-note { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); padding: 0 4px; border-radius: 3px; background: rgba(0, 0, 0, 0.7); color: var(--muted); font-size: 9.5px; white-space: nowrap; }
+
+/* 파티 줄: 한 파티 = 한 줄 (이름 | 3칸 | 삭제). 10파티 넘어도 길게 안 늘어지게 */
+.pm-party-list { display: flex; flex-direction: column; gap: 6px; }
+.pm-party { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.pm-party.is-active { border-color: var(--cyan); }
+.pm-party-name { min-width: 0; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--cyan); font-size: 13.5px; font-weight: 700; }
+.pm-party-name:hover { border-color: var(--line); }
+.pm-party-name:focus { border-color: var(--cyan); outline: none; background: var(--raised); }
+.pm-party-del { padding: 4px 9px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--dim); font-size: 12px; cursor: pointer; }
+.pm-party-del:hover { color: var(--red); border-color: var(--red); }
+.pm-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.pm-slot { --el: var(--dim); display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px; border: 1px solid transparent; border-radius: 8px; background: none; color: var(--muted); font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; }
+.pm-slot:hover { border-color: var(--line); }
+.pm-slot .role-face { flex: none; width: 48px; height: 48px; border-radius: 8px; }
+.pm-slot .role-face .el-icon { width: 11px; height: 11px; right: 2px; bottom: 4px; }
+.pm-slot:not(.is-filled) .role-face { display: flex; align-items: center; justify-content: center; border-style: dashed; box-shadow: none; background: transparent; }
+.pm-slot:not(.is-filled) .role-more-mark { font-size: 18px; }
+.pm-slot-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pm-slot-text .role-label { color: var(--text); font-size: 12.5px; }
+.pm-slot:not(.is-filled) .role-label { color: var(--dim); }
+.pm-slot-weapon { display: flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
+.pm-slot-weapon img { flex: none; width: 16px; height: 16px; }
+.pm-slot-weapon.is-none { color: var(--dim); }
+.pm-slot.is-active { border-color: var(--cyan); background: var(--cyan-soft); }
+.pm-slot.is-active .role-face { border-color: var(--cyan); }
+@media (max-width: 600px) {
+  .pm-party { grid-template-columns: 1fr auto; }
+  .pm-party .pm-slots { grid-column: 1 / -1; grid-row: 2; }
+  .pm-slot { flex-direction: column; align-items: center; text-align: center; }
+  .pm-slot-text { align-items: center; }
+  .pm-slot-weapon { justify-content: center; max-width: 100%; }
+}
+
+/* 무기 아이콘 (보유 타일 왼쪽 위) · 무기 고르기 */
+.role-face .pm-wicon { position: absolute; left: 1px; top: 1px; width: 20px; height: 20px; border-radius: 4px; background: rgba(0, 0, 0, 0.55); }
+.pm-weapon-row { align-items: flex-start; }
+.pm-seg-label small { display: block; color: var(--dim); font-size: 11px; font-weight: 500; }
+.pm-weapons { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 4px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
+.pm-weapon { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); font-size: 11.5px; font-weight: 600; text-align: left; cursor: pointer; }
+.pm-weapon:hover { color: var(--text); border-color: var(--dim); }
+.pm-weapon[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan-soft); color: var(--text); }
+.pm-weapon-img { flex: none; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 5px; background: var(--raised); color: var(--dim); }
+.pm-weapon-img img { width: 28px; height: 28px; }
+.pm-weapon.q5 .pm-weapon-img { background: linear-gradient(160deg, rgba(245, 196, 90, 0.35), var(--raised) 70%); }
+.pm-weapon.q4 .pm-weapon-img { background: linear-gradient(160deg, rgba(195, 155, 255, 0.35), var(--raised) 70%); }
+.pm-weapon-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 캐릭터 고르기 */
+.pm-picker { margin: 0 0 4px; padding: 12px; border: 1px solid var(--cyan); border-radius: 10px; background: var(--raised); }
+.pm-picker[hidden] { display: none; }
+.pm-picker-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--text); font-size: 13px; font-weight: 700; }
+.pm-picker-grid { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; max-height: 320px; overflow-y: auto; }
+.pm-picker-grid .pm-tiles { align-self: stretch; }
+.pm-out { border-color: var(--red); color: var(--red); }
+.pm-empty { margin: 0; color: var(--dim); font-size: 12.5px; }
+
+/* 캡처용 카드: canvas를 화면 폭에 맞춰 보여준다 (저장은 원래 크기의 2배) */
+.pm-card { padding-top: 14px; }
+.pm-card-canvas { display: block; width: 100%; max-width: 880px; height: auto; margin: 0 auto; border-radius: 10px; border: 1px solid var(--line); }
+@media (max-width: 600px) {
+  .app-tabs { order: 3; width: 100%; margin-right: 0; }
+  .app-tabs a { flex: 1; text-align: center; }
+}
+/* 가진 캐릭터: 평소엔 가진 것만 + 사용 횟수, 체크할 때만 60명 전부 */
+.pm-owned-tile { cursor: default; }
+.pm-owned-tile .role-face { cursor: pointer; }
+.pm-owned-grid:not(.is-editing) .pm-tiles { grid-template-columns: repeat(auto-fill, 56px); gap: 8px 8px; }
+.pm-owned-grid:not(.is-editing) .pm-tile { width: 56px; }
+.pm-owned-grid:not(.is-editing) .pm-tile .role-face { width: 52px; height: 52px; }
+.pm-build { color: var(--dim); font-family: var(--num); font-size: 10.5px; font-weight: 600; line-height: 1; white-space: nowrap; }
+.pm-slot .pm-build { font-size: 11px; color: var(--muted); }
+.pm-two { top: 1px; background: var(--cyan); color: var(--cyan-ink); font-family: var(--num); font-weight: 700; }
+.pm-owned-tile.is-editing .role-face { border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-soft), 0 0 12px rgba(var(--cyan-rgb), 0.3); }
+/* 돌파 · 재련 · 사용 횟수 설정 상자 */
+.pm-editor { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--cyan); border-radius: 10px; background: var(--raised); }
+.pm-editor-head { display: flex; align-items: center; gap: 10px; }
+.pm-editor-head .role-face { width: 36px; height: 36px; border-radius: 8px; }
+.pm-editor-head strong { flex: 1; color: var(--text); font-size: 14px; }
+.pm-seg-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pm-seg-label { width: 64px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.pm-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.pm-seg button { min-width: 40px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); font-family: var(--num); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.pm-seg button:hover { color: var(--text); border-color: var(--dim); }
+.pm-seg button[aria-pressed="true"] { border-color: var(--cyan); background: var(--cyan); color: var(--cyan-ink); }

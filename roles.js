@@ -94,7 +94,7 @@ export const ROLES = [
 const findRole = (id) => ROLES.find((r) => r.id === id) || null;
 const targetsOf = (role) => PRESETS[role.id] ?? FALLBACK_TARGETS;
 
-const faceUrl = (role) => `./img/roles/face/${role.img ?? role.id}.jpg`;  // 얼굴 타일용 (게임 얼굴 아이콘)
+export const faceUrl = (role) => `./img/roles/face/${role.img ?? role.id}.jpg`;  // 얼굴 타일용 (게임 얼굴 아이콘)
 
 const $ = (id) => document.getElementById(id);
 const section = $('roleSection');

@@ -23,6 +23,10 @@
       명조 에코파고
       <span class="badge-release">v4.0</span>
     </h2>
+    <nav class="app-tabs" id="appTabs" aria-label="메뉴">
+      <a href="#" data-tab="echo">에코파고</a>
+      <a href="#party" data-tab="party">파티 메이커</a>
+    </nav>
     <span class="app-sub">에코 부옵션 강화 시뮬레이터</span>
   </header>
 
@@ -155,6 +159,48 @@
     </div>
   </div>
 
+  <!-- 파티 메이커: 보유 캐릭터 체크 → 파티 직접 구성 → 한 장으로 캡처 (party.js) -->
+  <main class="party-page" id="partyPage">
+    <div class="pm-grid">
+      <section class="panel pm-owned">
+        <div class="pm-head">
+          <h3>보유 캐릭터 <span class="pm-count" id="pmOwnedCount">0/60</span></h3>
+          <div class="pm-head-btns">
+            <button type="button" class="pm-btn" id="pmOwnAll" hidden>전체 선택</button>
+            <button type="button" class="pm-btn" id="pmOwnNone" hidden>전체 해제</button>
+            <button type="button" class="pm-btn pm-btn-accent" id="pmOwnEdit">캐릭터 체크하기</button>
+          </div>
+        </div>
+        <p class="pm-hint" id="pmOwnedHint"></p>
+        <div class="pm-owned-grid" id="pmOwnedGrid"></div>
+      </section>
+
+      <section class="panel pm-parties">
+        <div class="pm-head">
+          <h3>파티 <span class="pm-count" id="pmPartyCount">1/20</span></h3>
+          <button type="button" class="pm-btn pm-btn-accent" id="pmAddParty">＋ 파티 추가</button>
+        </div>
+        <p class="pm-hint">칸을 누르면 바로 아래에 캐릭터 고르기가 열려요. 파티 이름은 눌러서 바꿀 수 있어요.</p>
+        <div class="pm-party-list" id="pmPartyList"></div>
+        <div class="pm-picker" id="pmPicker" hidden>
+          <div class="pm-picker-head"><span id="pmPickerTitle">넣을 캐릭터</span><button type="button" class="pm-btn" id="pmPickerClose">닫기</button></div>
+          <div class="pm-picker-grid" id="pmPickerGrid"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel pm-card-wrap">
+      <div class="pm-head">
+        <h3>캡처용 카드</h3>
+        <div class="pm-head-btns">
+          <button type="button" class="pm-btn" id="pmCopyPng">이미지 복사</button>
+          <button type="button" class="pm-btn pm-btn-accent" id="pmSavePng">PNG로 저장</button>
+        </div>
+      </div>
+      <div class="pm-card" id="pmCard"></div>
+    </section>
+  </main>
+
   <footer class="app-footer">
     <div class="footer-top">
       <div class="footer-brand">
@@ -216,5 +262,6 @@
     </div>
   </div>
   <script type="module" src="./roles.js"></script>
+  <script type="module" src="./party.js"></script>
 </body>
 </html>
