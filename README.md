@@ -102,7 +102,8 @@
 
 ## 관련 글 (아카라이브 명조 채널)
 
-- [명조 에코파고 사용 가이드](https://arca.live/b/wutheringwaves/185606428)
+- [명조 툴즈 사용 가이드 (에코파고 · 파티 메이커)](https://arca.live/b/wutheringwaves/185606428)
+- [패치노트 v5.0](https://arca.live/b/wutheringwaves/186969873)
 - [패치노트 v4.0](https://arca.live/b/wutheringwaves/186203926)
 - [패치노트 v3.0](https://arca.live/b/wutheringwaves/186069329)
 - [패치노트 v2.0](https://arca.live/b/wutheringwaves/185575199)
