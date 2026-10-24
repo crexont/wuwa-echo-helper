@@ -10,9 +10,9 @@
 
 [![사이트 바로가기](https://img.shields.io/badge/%EC%82%AC%EC%9D%B4%ED%8A%B8-%EB%B0%94%EB%A1%9C%EA%B0%80%EA%B8%B0-3ee6d6?style=for-the-badge)](https://crexont.github.io/wuwa-echo-helper/)
 &nbsp;
-![version](https://img.shields.io/badge/version-v4.0-222327?style=for-the-badge)
+![version](https://img.shields.io/badge/version-v5.0-222327?style=for-the-badge)
 
-<img src="docs/screenshot-main-v4.0c.png" alt="명조 툴즈 · 에코파고 화면" width="860">
+<img src="docs/screenshot-main-v5.0.png" alt="명조 툴즈 · 에코파고 화면" width="860">
 
 </div>
 
@@ -43,11 +43,11 @@
 6. 게임 위에 띄워 두고 싶으면 **⧉ 오버레이**를 눌러요. (크롬·엣지 PC)
 
 <div align="center">
-  <img src="docs/screenshot-overlay-v4.0c.png" alt="오버레이 창" width="320"><br>
+  <img src="docs/screenshot-overlay-v5.0.png" alt="오버레이 창" width="320"><br>
   <sub>오버레이 창: 게임 위에 띄워 두고 부옵션과 확률을 바로 확인</sub>
 </div>
 
-## 파티 메이커
+## 파티 메이커 (v5.0)
 
 사이트 제목 줄의 **파티 메이커** 탭 (또는 [바로가기](https://crexont.github.io/wuwa-echo-helper/#party)).
 
@@ -58,7 +58,7 @@
 - 설정은 전부 이 브라우저에만 저장돼요.
 
 <div align="center">
-  <img src="docs/screenshot-party-v4.0c.png" alt="파티 메이커 캡처 카드" width="720"><br>
+  <img src="docs/screenshot-party-v5.0.png" alt="파티 메이커 캡처 카드" width="720"><br>
   <sub>파티 메이커 캡처 카드: 10파티 + 안 넣은 캐릭터를 한 장으로</sub>
 </div>
 

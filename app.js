@@ -1,4 +1,4 @@
-// app.js — 명조 에코파고 v4.0: 화면 공유, 인식 영역 조정, 결과 표시, 수동 수정
+// app.js — 명조 툴즈 v5.0: 화면 공유, 인식 영역 조정, 결과 표시, 수동 수정
 // (한 줄 읽기는 ocr.js, 어느 줄을 언제 읽을지는 scan.js, 확률 계산은 math.js)
 import {
   STAT_DATABASE, DEFAULT_TARGETS, GOAL_PRESETS, CUT_SCORE,
