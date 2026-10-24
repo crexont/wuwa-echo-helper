@@ -100,29 +100,6 @@
 - 화면 인식(OCR)은 전부 **내 브라우저 안에서** 돌아가요. 게임 화면은 어디에도 전송되지 않아요.
 - 설정(유효옵, GO 판단 기준, 고른 공명자, 인식 영역, 파티 메이커의 보유 캐릭터 · 파티)만 브라우저 저장소에 남아요.
 
-## 파일 구조
-
-| 파일 | 역할 |
-|---|---|
-| `index.html` · `style.css` | 화면 구성과 디자인 |
-| `app.js` | 전체 흐름, 화면 그리기, 설정 저장 |
-| `scan.js` | 바뀐 줄을 찾아서 읽을 순서 정하기 |
-| `ocr.js` | 전처리, Tesseract.js 인식, 모양 기억(재인식 생략) |
-| `math.js` | 목표별 완성 확률, 튜너 손익분기 계산 |
-| `data.js` | 부옵션 종류·수치표·목표 정의 |
-| `overlay.js` | 오버레이 창 (Document Picture-in-Picture) |
-| `roles.js` · `presets.js` | 공명자 선택, 공명자별 유효옵 |
-| `party.js` · `weapons.js` | 파티 메이커, 무기 목록 |
-| `themes.js` | 공명자별 대표색 (테마) |
-| `img/roles/` · `img/theme/` · `img/weapons/` · `icons/elements/` | 공명자 얼굴 아이콘, 테마 일러스트, 무기 아이콘, 속성 아이콘 |
-| `config.js` | 공통 설정값 |
-
-빌드 과정 없이 순수 HTML·CSS·JS(ES 모듈)로 되어 있어요. 로컬에서는 아무 정적 서버로 열면 돼요.
-
-```bash
-npx serve .
-```
-
 ## 관련 글 (아카라이브 명조 채널)
 
 - [명조 에코파고 사용 가이드](https://arca.live/b/wutheringwaves/185606428)
