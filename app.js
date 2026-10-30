@@ -436,7 +436,15 @@ function resetCurrentEcho() {
 }
 
 // ───────── 렌더 루프 ─────────
-function nextFrame(cb) { return (getOverlayWindow() || globalThis).requestAnimationFrame(cb); }
+// 오버레이가 열려 있으면 그 창의 화면 갱신에 맞춘다 (본 페이지가 게임 뒤로 가려져도 멈추지 않게).
+// 단, 오버레이 창의 시계는 그 창이 열린 순간부터 0으로 시작하므로 본 페이지 시계로 바꿔서 넘긴다.
+// (안 바꾸면 OCR 간격 · 줄 안정 판정이 본 페이지 시각과 비교돼서, 오버레이를 닫을 때까지 인식이 멈췄다)
+function nextFrame(cb) {
+  const w = getOverlayWindow();
+  if (!w) return globalThis.requestAnimationFrame(cb);
+  const shift = w.performance.timeOrigin - performance.timeOrigin;
+  return w.requestAnimationFrame((ts) => cb(ts + shift));
+}
 function renderLoop(timestamp, token) {
   if (token !== loopToken || !currentStream) return;
   if (gameVideo.videoWidth) drawFrame(timestamp);
